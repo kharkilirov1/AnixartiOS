@@ -71,8 +71,8 @@ final class APIClient: @unchecked Sendable {
 
     var authToken: String? { TokenStore.load() }
 
-    init(baseURLProvider: (@escaping () -> String)? = nil) {
-        self.baseURLProvider = baseURLProvider ?? { APIClient.activeBase }
+    init(baseURLProvider: @escaping () -> String = { APIClient.activeBase }) {
+        self.baseURLProvider = baseURLProvider
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
         config.timeoutIntervalForResource = 40
