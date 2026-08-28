@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 struct APIError: Error, LocalizedError {
     let code: Int
@@ -22,6 +23,26 @@ struct APIError: Error, LocalizedError {
 final class APIClient: @unchecked Sendable {
 
     static let shared = APIClient()
+
+    // MARK: Diagnostics (shown in DiagnosticsView, mirrored to os_log)
+
+    private static let logger = Logger(subsystem: "com.kharki.anixart", category: "api")
+    private static let logQueue = DispatchQueue(label: "com.kharki.anixart.diag")
+    static private(set) var recentErrors: [String] = []
+
+    static func logError(_ message: String) {
+        let stamp = DateFormatter.localizedString(for: Date(), dateStyle: .none, timeStyle: .medium)
+        let line = "[\(stamp)] \(message)"
+        logger.error("ANIX \(line, privacy: .public)")
+        logQueue.sync {
+            recentErrors.append(line)
+            if recentErrors.count > 50 { recentErrors.removeFirst(recentErrors.count - 50) }
+        }
+    }
+
+    static func lastErrorsSnapshot() -> [String] {
+        logQueue.sync { recentErrors }
+    }
 
     private let session: URLSession
     private let decoder: JSONDecoder
@@ -83,20 +104,35 @@ final class APIClient: @unchecked Sendable {
             req.httpBody = Data("{}".utf8)
         }
 
-        let (data, response) = try await session.data(for: req)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: req)
+        } catch {
+            let nsCode = (error as? URLError)?.code.rawValue ?? -1
+            Self.logError("Network \(path): \(error.localizedDescription) [URLError \(nsCode)]")
+            throw error
+        }
         guard let http = response as? HTTPURLResponse else {
+            Self.logError("Нет HTTP-ответа: \(path)")
             throw APIError(code: -2, message: "Нет ответа сервера")
         }
+        let bodySnippet = String(data: data.prefix(300), encoding: .utf8) ?? "<binary \(data.count) bytes>"
         guard (200..<300).contains(http.statusCode) else {
+            Self.logError("HTTP \(http.statusCode) \(req.httpMethod ?? "") \(path) | \(bodySnippet)")
             throw APIError(code: http.statusCode, message: "HTTP \(http.statusCode)")
         }
         do {
-            return try decoder.decode(T.self, from: data)
+            let result = try decoder.decode(T.self, from: data)
+            logger.debug("ANIX ok \(path, privacy: .public) (\(http.statusCode))")
+            return result
         } catch {
             // Body may be a plain envelope {"code":N} while T is a model — surface app-level code.
             if let envelope = try? decoder.decode(CodeEnvelope.self, from: data), let code = envelope.code, code != 0 {
+                Self.logError("AppCode \(code) \(path) | \(bodySnippet)")
                 throw APIError(code: code, message: APIError.message(for: code))
             }
+            Self.logError("Decode \(String(describing: T.self)) \(path): \(error.localizedDescription) | \(bodySnippet)")
             throw error
         }
     }

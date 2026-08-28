@@ -30,6 +30,7 @@ enum HomeTab: String, CaseIterable, Identifiable {
 enum HomeRoute: Hashable {
     case schedule
     case random
+    case diagnostics
 }
 
 struct HomeView: View {
@@ -63,11 +64,17 @@ struct HomeView: View {
                     Image(systemName: "dice")
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(value: HomeRoute.diagnostics) {
+                    Image(systemName: "stethoscope")
+                }
+            }
         }
         .navigationDestination(for: HomeRoute.self) { route in
             switch route {
             case .schedule: ScheduleView()
             case .random: RandomRollView()
+            case .diagnostics: DiagnosticsView()
             }
         }
     }

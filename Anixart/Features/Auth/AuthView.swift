@@ -5,6 +5,7 @@ import SwiftUI
 struct AuthView: View {
     @Environment(AppState.self) private var appState
     @State private var mode: Mode = .signIn
+    @State private var showDiagnostics = false
 
     enum Mode: Hashable {
         case signIn, signUp, verify(SignUpContext), restore, restoreVerify(RestoreContext)
@@ -53,11 +54,25 @@ struct AuthView: View {
             }
 
             Spacer()
+
+            Button {
+                showDiagnostics = true
+            } label: {
+                Label("Диагностика сети", systemImage: "stethoscope")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.inkTertiary)
+            }
+            .padding(.bottom, 20)
         }
         .padding(.horizontal, 24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.bg.ignoresSafeArea())
         .animation(.easeInOut(duration: 0.15), value: mode)
+        .sheet(isPresented: $showDiagnostics) {
+            NavigationStack { DiagnosticsView() }
+                .presentationDetents([.large])
+                .preferredColorScheme(.dark)
+        }
     }
 }
 
