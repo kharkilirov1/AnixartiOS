@@ -31,7 +31,7 @@ final class APIClient: @unchecked Sendable {
     static private(set) var recentErrors: [String] = []
 
     static func logError(_ message: String) {
-        let stamp = DateFormatter.localizedString(for: Date(), dateStyle: .none, timeStyle: .medium)
+        let stamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
         let line = "[\(stamp)] \(message)"
         logger.error("ANIX \(line, privacy: .public)")
         logQueue.sync {
@@ -124,7 +124,7 @@ final class APIClient: @unchecked Sendable {
         }
         do {
             let result = try decoder.decode(T.self, from: data)
-            logger.debug("ANIX ok \(path, privacy: .public) (\(http.statusCode))")
+            Self.logger.debug("ANIX ok \(path, privacy: .public) (\(http.statusCode))")
             return result
         } catch {
             // Body may be a plain envelope {"code":N} while T is a model — surface app-level code.
