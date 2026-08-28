@@ -41,7 +41,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _openEpisode(int index) async {
     _index = index;
     final ep = widget.episodes[index];
-    setState(() { _error = null; _vc?.dispose(); _vc = null; _isIframe = false; _iframeUrl = null; });
+    setState(() { _error = null; _vc?.dispose(); _vc = null; _isIframe = false; _web = null; });
 
     Api.I.markWatched(widget.release.id, ep.sourceId ?? widget.source.id, ep.position ?? index + 1);
     Api.I.saveHistory(widget.release.id, ep.sourceId ?? widget.source.id, ep.position ?? index + 1);
