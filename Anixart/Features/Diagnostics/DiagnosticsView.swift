@@ -54,7 +54,15 @@ struct DiagnosticsView: View {
             }
 
             Section("Окружение") {
-                envRow("Base URL", "https://api-s.anixsekai.com/")
+                envRow("Активный API", APIClient.activeBase)
+                Button {
+                    APIClient.toggleBase()
+                    lines.append("— API переключён на \(APIClient.activeBase) —")
+                } label: {
+                    Text("Переключить на \(APIClient.activeBase == APIClient.primaryBase ? "запасной (api-s2)" : "основной (api-s)")")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.carmine)
+                }
                 envRow("Токен", TokenStore.load() != nil ? "сохранён" : "нет (гость)")
                 envRow("iOS", ProcessInfo.processInfo.operatingSystemVersionString)
             }

@@ -44,6 +44,26 @@ final class APIClient: @unchecked Sendable {
         logQueue.sync { recentErrors }
     }
 
+    // MARK: Base URL with automatic failover (mirrors Android IS_API_ALT behavior)
+
+    static let primaryBase = "https://api-s.anixsekai.com/"
+    static let altBase = "https://api-s2.anixart.tv/"
+    private static let baseKey = "apiBase"
+
+    static var activeBase: String {
+        UserDefaults.standard.string(forKey: baseKey) ?? primaryBase
+    }
+
+    /// Manual override used by the Diagnostics screen.
+    static func setBase(_ url: String) {
+        UserDefaults.standard.set(url, forKey: baseKey)
+        Self.logError("Base URL переключён вручную: \(url)")
+    }
+
+    static func toggleBase() {
+        setBase(activeBase == primaryBase ? altBase : primaryBase)
+    }
+
     private let session: URLSession
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
@@ -51,10 +71,10 @@ final class APIClient: @unchecked Sendable {
 
     var authToken: String? { TokenStore.load() }
 
-    init(baseURLProvider: @escaping () -> String = { "https://api-s.anixsekai.com/" }) {
-        self.baseURLProvider = baseURLProvider
+    init(baseURLProvider: (@escaping () -> String)? = nil) {
+        self.baseURLProvider = baseURLProvider ?? { APIClient.activeBase }
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 20
+        config.timeoutIntervalForRequest = 15
         config.timeoutIntervalForResource = 40
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
@@ -63,8 +83,8 @@ final class APIClient: @unchecked Sendable {
 
     // MARK: - Core request
 
-    private func buildURL(_ path: String, query: [String: String?]) -> URL? {
-        var comps = URLComponents(string: baseURLProvider() + path)
+    private func buildURL(base: String, path: String, query: [String: String?]) -> URL? {
+        var comps = URLComponents(string: base + path)
         var items = comps?.queryItems ?? []
         for (key, value) in query {
             if let value { items.append(URLQueryItem(name: key, value: value)) }
@@ -78,6 +98,8 @@ final class APIClient: @unchecked Sendable {
         return comps?.url
     }
 
+    /// Request with automatic failover: a network-level failure on the primary
+    /// base URL is retried once against the alt API (persisted on success).
     func request<T: Decodable>(
         _ path: String,
         method: String = "GET",
@@ -85,7 +107,30 @@ final class APIClient: @unchecked Sendable {
         body: Data? = nil,
         asForm form: [String: String]? = nil
     ) async throws -> T {
-        guard let url = buildURL(path, query: query) else {
+        let base = baseURLProvider()
+        do {
+            return try await perform(path, base: base, method: method, query: query, body: body, form: form)
+        } catch let urlError as URLError {
+            let fallback: String = base == Self.primaryBase ? Self.altBase : Self.primaryBase
+            Self.logError("Failover \(path): \(urlError.localizedDescription), пробуем \(fallback)")
+            let result: T = try await perform(path, base: fallback, method: method, query: query, body: body, form: form)
+            if UserDefaults.standard.string(forKey: Self.baseKey) != fallback {
+                UserDefaults.standard.set(fallback, forKey: Self.baseKey)
+                Self.logError("Base URL переключён автоматически: \(fallback)")
+            }
+            return result
+        }
+    }
+
+    private func perform<T: Decodable>(
+        _ path: String,
+        base: String,
+        method: String,
+        query: [String: String?],
+        body: Data?,
+        form: [String: String]?
+    ) async throws -> T {
+        guard let url = buildURL(base: base, path: path, query: query) else {
             throw APIError(code: -1, message: "Некорректный URL")
         }
         var req = URLRequest(url: url)
