@@ -22,7 +22,9 @@ struct ProfileView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 16) {
-                if appState.isGuest && profileId == 0 {
+                if profileId == 0 {
+                    // No profile id (guest session / unknown author) — nothing to fetch,
+                    // the API would answer code 2 for id 0.
                     guestPlaceholder
                 } else if let profile {
                     header(profile)
@@ -281,6 +283,7 @@ struct ProfileView: View {
     }
 
     private func load() async {
+        guard profileId > 0 else { return }
         error = nil
         do {
             let resp = try await APIClient.shared.profile(id: profileId)
@@ -297,6 +300,7 @@ struct ProfileView: View {
     }
 
     private func loadList(_ status: ProfileListStatus) async {
+        guard profileId > 0 else { return }
         listLoading = true
         defer { listLoading = false }
         do {

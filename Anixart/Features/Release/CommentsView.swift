@@ -202,12 +202,18 @@ struct CommentCell: View {
 
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 6) {
-                        NavigationLink(value: comment.profile?.id ?? 0) {
+                        if let authorId = comment.profile?.id, authorId > 0 {
+                            NavigationLink(value: authorId) {
+                                Text(comment.profile?.login ?? "")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(Theme.inkPrimary)
+                            }
+                            .buttonStyle(.plain)
+                        } else {
                             Text(comment.profile?.login ?? "")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundStyle(Theme.inkPrimary)
                         }
-                        .buttonStyle(.plain)
                         if let role = comment.profile?.roles?.first, let colorHex = role.color {
                             Text(role.name ?? "")
                                 .font(.system(size: 9, weight: .bold))
