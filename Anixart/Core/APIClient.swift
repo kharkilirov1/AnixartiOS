@@ -410,7 +410,7 @@ struct DirectLinksWrapper: Codable {
 
     enum CodingKeys: String, CodingKey {
         case code
-        case default = "default"
+        case `default` = "default"
     }
 }
 

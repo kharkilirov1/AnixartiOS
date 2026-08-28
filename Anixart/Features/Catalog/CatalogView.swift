@@ -141,6 +141,29 @@ struct CatalogView: View {
     }
 }
 
+// MARK: - Genre chip
+
+private struct GenreChip: View {
+    let genre: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(genre)
+                .font(.system(size: 12))
+                .lineLimit(1)
+                .foregroundStyle(isSelected ? .white : Theme.inkSecondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity)
+                .background(isSelected ? Theme.carmine : Theme.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Filter sheet
 
 struct FilterSheet: View {
@@ -173,26 +196,15 @@ struct FilterSheet: View {
                     filterSection("Жанры") {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], spacing: 6) {
                             ForEach(Genres.all, id: \.self) { genre in
-                                let selected = filter.genres?.contains(genre) ?? false
-                                Button {
-                                    if selected {
-                                        filter.genres?.removeAll { $0 == genre }
+                                GenreChip(genre: genre, isSelected: filter.genres?.contains(genre) ?? false) {
+                                    var genres: [String] = filter.genres ?? []
+                                    if let index = genres.firstIndex(of: genre) {
+                                        genres.remove(at: index)
                                     } else {
-                                        if filter.genres == nil { filter.genres = [] }
-                                        filter.genres?.append(genre)
+                                        genres.append(genre)
                                     }
-                                } label: {
-                                    Text(genre)
-                                        .font(.system(size: 12))
-                                        .lineLimit(1)
-                                        .foregroundStyle(selected ? .white : Theme.inkSecondary)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 6)
-                                        .frame(maxWidth: .infinity)
-                                        .background(selected ? Theme.carmine : Theme.secondary)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    filter.genres = genres
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }

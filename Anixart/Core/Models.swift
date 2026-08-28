@@ -259,12 +259,15 @@ struct Episode: Codable, Identifiable, Hashable {
     let playbackPosition: Int?
     let addedDate: Int?
     let quality: Int?
-    let release: Release?
+
+    // NOTE: the wire format also includes a nested `release` object here,
+    // but keeping it would create a Release <-> Episode value-type cycle
+    // (Optional stores inline) -> "infinite size". Intentionally not decoded.
 
     enum CodingKeys: String, CodingKey {
         case releaseId = "releaseId"
         case sourceId = "sourceId"
-        case position, name, url, iframe, quality, release
+        case position, name, url, iframe, quality
         case isFiller = "is_filler"
         case isWatched = "is_watched"
         case playbackPosition = "playback_position"

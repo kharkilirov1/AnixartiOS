@@ -91,7 +91,7 @@ struct ProfileView: View {
                 .foregroundStyle(Theme.inkPrimary)
 
             HStack(spacing: 8) {
-                ForEach(p.roles ?? []) { role in
+                ForEach(p.roles ?? [], id: \.id) { role in
                     Text(role.name ?? "")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(role.color.map { Color(hexString: $0) } ?? Theme.inkSecondary)
