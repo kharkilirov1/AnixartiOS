@@ -80,6 +80,9 @@
 			);
 			mainGroup = 1A000001A0000000000R0001;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				1A000001A0000000000K0001 /* XCRemoteSwiftPackageReference "kingfisher" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 1A000001A0000000000P0001 /* Products */;
 			projectRoot = "";
