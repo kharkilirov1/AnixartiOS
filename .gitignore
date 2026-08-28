@@ -1,14 +1,15 @@
-# Xcode
+# Flutter/Dart
+.dart_tool/
+.packages
 build/
-DerivedData/
-*.xcuserstate
-xcuserdata/
-*.xccheckout
-*.moved-aside
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
 
-# SPM
-.build/
-Package.resolved
+# IDE
+.idea/
+*.iml
+.vscode/
 
 # macOS
 .DS_Store
