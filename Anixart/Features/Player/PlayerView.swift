@@ -9,7 +9,7 @@ struct PlayerView: View {
 
     @State private var links: DirectLinks?
     @State private var loading = true
-    @State private var mode: Mode = .web
+    @State private var mode: Mode?
     @State private var error: String?
     @State private var watchedNotified = false
 
@@ -26,7 +26,7 @@ struct PlayerView: View {
             } else if let error {
                 ErrorView(message: error)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
+            } else if let mode {
                 switch mode {
                 case .native(let url):
                     NativePlayerView(url: url, title: context.episode.name ?? "Серия \(context.episode.position ?? 0)")
@@ -91,7 +91,7 @@ struct PlayerView: View {
                 mode = .native(url)
                 await markWatched()
             } else {
-                error = error.localizedDescription
+                self.error = error.localizedDescription
             }
         }
     }
