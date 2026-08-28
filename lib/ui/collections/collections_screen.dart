@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/api.dart';
+import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../bookmarks/bookmarks_screen.dart';
 import '../widgets.dart';

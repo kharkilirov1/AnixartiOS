@@ -116,10 +116,11 @@ class Api {
     return json;
   }
 
-  Pageable<T> _page<T>(dynamic json, T Function(dynamic) parse) {
+  Pageable<T> _page<T>(dynamic json, T Function(Map<String, dynamic>) parse) {
     return Pageable<T>(
       code: (json['code'] as num?)?.toInt(),
-      content: ((json['content'] as List?) ?? []).map(parse).toList(),
+      content: ((json['content'] as List?) ?? [])
+          .whereType<Map<String, dynamic>>().map(parse).toList(),
       currentPage: (json['current_page'] as num?)?.toInt(),
       totalPageCount: (json['total_page_count'] as num?)?.toInt(),
     );

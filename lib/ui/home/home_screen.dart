@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: PagedScroll<Release>(
             key: ValueKey(_tab),
             loader: (page) => Api.I.filter(page, _filterFor(_tab)),
-            itemBuilder: (_, r) => ReleaseListItem(
+            itemBuilder: (_, r, __) => ReleaseListItem(
               release: r,
               onTap: () => Navigator.pushNamed(context, Routes.release,
                   arguments: ReleaseArgs(release: r)),
