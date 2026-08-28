@@ -166,6 +166,11 @@ private struct GenreChip: View {
 
 // MARK: - Filter sheet
 
+private struct ChipItem: Identifiable {
+    let id: Int
+    let title: String
+}
+
 struct FilterSheet: View {
     @Binding var filter: FilterRequestDTO
     @Environment(\.dismiss) private var dismiss
@@ -175,48 +180,11 @@ struct FilterSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    filterSection("Тип") {
-                        chips(CatalogCategory.allCases.map { ($0.title, $0.rawValue) },
-                              selection: filter.categoryId) { filter.categoryId = $0 }
-                    }
-
-                    filterSection("Статус") {
-                        chips([(-1, "Любой")] + CatalogStatus.allCases.map { ($0.title, $0.rawValue) },
-                              selection: filter.statusId) { filter.statusId = $0 }
-                    }
-
-                    filterSection("Год от \(Int(yearFrom))") {
-                        Slider(value: $yearFrom, in: 1960...2027, step: 1)
-                            .tint(Theme.carmine)
-                            .onChange(of: yearFrom) { _, newValue in
-                                filter.startYear = Int(newValue)
-                            }
-                    }
-
-                    filterSection("Жанры") {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], spacing: 6) {
-                            ForEach(Genres.all, id: \.self) { genre in
-                                GenreChip(genre: genre, isSelected: filter.genres?.contains(genre) ?? false) {
-                                    var genres: [String] = filter.genres ?? []
-                                    if let index = genres.firstIndex(of: genre) {
-                                        genres.remove(at: index)
-                                    } else {
-                                        genres.append(genre)
-                                    }
-                                    filter.genres = genres
-                                }
-                            }
-                        }
-                    }
-
-                    filterSection("Исключать выбранные жанры") {
-                        Toggle("", isOn: Binding(
-                            get: { filter.isGenresExcludeModeEnabled ?? false },
-                            set: { filter.isGenresExcludeModeEnabled = $0 }
-                        ))
-                        .labelsHidden()
-                        .tint(Theme.carmine)
-                    }
+                    categorySection
+                    statusSection
+                    yearSection
+                    genresSection
+                    excludeSection
                 }
                 .padding(16)
             }
@@ -242,7 +210,64 @@ struct FilterSheet: View {
         .preferredColorScheme(.dark)
     }
 
-    private func filterSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+    private var categorySection: some View {
+        section(title: "Тип") {
+            chipFlow(
+                items: CatalogCategory.allCases.map { ChipItem(id: $0.rawValue, title: $0.title) },
+                selection: filter.categoryId
+            ) { newValue in filter.categoryId = newValue }
+        }
+    }
+
+    private var statusSection: some View {
+        section(title: "Статус") {
+            chipFlow(
+                items: [ChipItem(id: -1, title: "Любой")] + CatalogStatus.allCases.map { ChipItem(id: $0.rawValue, title: $0.title) },
+                selection: filter.statusId
+            ) { newValue in filter.statusId = newValue }
+        }
+    }
+
+    private var yearSection: some View {
+        section(title: "Год от \(Int(yearFrom))") {
+            Slider(value: $yearFrom, in: 1960...2027, step: 1)
+                .tint(Theme.carmine)
+                .onChange(of: yearFrom) { _, newValue in
+                    filter.startYear = Int(newValue)
+                }
+        }
+    }
+
+    private var genresSection: some View {
+        section(title: "Жанры") {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], spacing: 6) {
+                ForEach(Genres.all, id: \.self) { genre in
+                    GenreChip(genre: genre, isSelected: filter.genres?.contains(genre) ?? false) {
+                        var genres: [String] = filter.genres ?? []
+                        if let index = genres.firstIndex(of: genre) {
+                            genres.remove(at: index)
+                        } else {
+                            genres.append(genre)
+                        }
+                        filter.genres = genres
+                    }
+                }
+            }
+        }
+    }
+
+    private var excludeSection: some View {
+        section(title: "Исключать выбранные жанры") {
+            Toggle("", isOn: Binding(
+                get: { filter.isGenresExcludeModeEnabled ?? false },
+                set: { filter.isGenresExcludeModeEnabled = $0 }
+            ))
+            .labelsHidden()
+            .tint(Theme.carmine)
+        }
+    }
+
+    private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.system(size: 15, weight: .semibold))
@@ -252,24 +277,36 @@ struct FilterSheet: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func chips(_ items: [(String, Int)], selection: Int?, handler: @escaping (Int?) -> Void) -> some View {
+    private func chipFlow(items: [ChipItem], selection: Int?, handler: @escaping (Int?) -> Void) -> some View {
         FlowLayout {
-            ForEach(items, id: \.1) { item in
-                let selected = selection == item.1
-                Button {
-                    handler(selected ? nil : item.1)
-                } label: {
-                    Text(item.0)
-                        .font(.system(size: 13, weight: selected ? .semibold : .regular))
-                        .foregroundStyle(selected ? .white : Theme.inkSecondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 7)
-                        .background(selected ? Theme.carmine : Theme.secondary)
-                        .clipShape(Capsule())
+            ForEach(items) { item in
+                FilterChipButton(
+                    title: item.title,
+                    isSelected: selection == item.id
+                ) {
+                    handler(selection == item.id ? nil : item.id)
                 }
-                .buttonStyle(.plain)
             }
         }
+    }
+}
+
+private struct FilterChipButton: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? .white : Theme.inkSecondary)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(isSelected ? Theme.carmine : Theme.secondary)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 

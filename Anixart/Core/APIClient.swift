@@ -171,7 +171,7 @@ final class APIClient: @unchecked Sendable {
         try await request("related/\(releaseId)/\(page)")
     }
 
-    func types() async throws -> TypesWrapper {
+    func types() async throws -> EpisodeTypesWrapper {
         try await request("type/all")
     }
 

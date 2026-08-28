@@ -10,14 +10,14 @@ struct AuthView: View {
         case signIn, signUp, verify(SignUpContext), restore, restoreVerify(RestoreContext)
     }
 
-    struct SignUpContext: Equatable {
+    struct SignUpContext: Hashable {
         var login: String
         var email: String
         var password: String
         var hash: String
     }
 
-    struct RestoreContext: Equatable {
+    struct RestoreContext: Hashable {
         var data: String
         var password: String = ""
         var hash: String = ""
