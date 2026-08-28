@@ -93,7 +93,8 @@ struct Release: Codable, Identifiable, Hashable {
     let videoBanners: [VideoBanner]?
     let note: String?
     let airedOnDate: Int?
-    let releaseDate: Int?
+    /// Wire format: date string ("2022-04-01") or null — not an int timestamp.
+    let releaseDate: String?
     let lastUpdateDate: Int?
 
     enum CodingKeys: String, CodingKey {
@@ -542,10 +543,10 @@ struct Toggles: Codable {
     let kodikVideoLinksUrl: String?
     let torlookUrl: String?
     let iframeEmbedUrl: String?
-    let kodikIframeAd: String?
+    let kodikIframeAd: Bool?
     let kodikAdIframeUrl: String?
     let sibnetUserAgent: String?
-    let sibnetRandUserAgent: String?
+    let sibnetRandUserAgent: Bool?
     let editorUrl: String?
     let staticDomain: String?
     let searchBarIconUrl: String?
