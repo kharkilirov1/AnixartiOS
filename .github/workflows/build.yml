@@ -1,0 +1,54 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve packages
+        run: |
+          cd AnixartiOS
+          xcodebuild -resolvePackageDependencies -project Anixart.xcodeproj -scheme Anixart
+
+      - name: Build device app (unsigned)
+        run: |
+          cd AnixartiOS
+          xcodebuild build \
+            -project Anixart.xcodeproj \
+            -scheme Anixart \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            DEVELOPMENT_TEAM= \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            -derivedDataPath build/DerivedData
+
+      - name: Package unsigned IPA (for AltStore/Sideloadly)
+        run: |
+          cd AnixartiOS/build
+          APP_PATH=$(find DerivedData/Build/Products -name 'Anixart.app' -type d | head -1)
+          if [ -z "$APP_PATH" ]; then echo "Anixart.app not found"; exit 1; fi
+          echo "Bundled app: $APP_PATH"
+          rm -rf Payload Anixart.ipa
+          mkdir Payload
+          cp -R "$APP_PATH" Payload/Anixart.app
+          zip -qr Anixart.ipa Payload
+          ls -la Anixart.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Anixart-ipa
+          path: AnixartiOS/build/Anixart.ipa
+          if-no-files-found: error

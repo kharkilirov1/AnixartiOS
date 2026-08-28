@@ -1,0 +1,17 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.moved-aside
+
+# SPM
+.build/
+Package.resolved
+
+# macOS
+.DS_Store
+
+# Tooling
+tools/__pycache__/
