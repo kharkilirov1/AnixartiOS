@@ -23,7 +23,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   int _index = 0;
   VideoPlayerController? _vc;
   bool _isIframe = false;
-  String? _iframeUrl;
+  WebViewController? _web;
   String? _error;
 
   @override
@@ -50,7 +50,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (raw.isEmpty) { setState(() => _error = 'Ссылка на эпизод отсутствует'); return; }
 
     if (ep.iframe == true) {
-      setState(() { _isIframe = true; _iframeUrl = raw; });
+      final controller = WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..loadRequest(Uri.parse(raw));
+      setState(() { _isIframe = true; _web = controller; });
       return;
     }
 
@@ -103,12 +106,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
             child: Center(
               child: _error != null
                   ? Text(_error!, style: const TextStyle(color: Colors.white70))
-                  : _isIframe
-                      ? WebViewWidget(WebView(
-                          initialUrl: _iframeUrl,
-                          javascriptMode: JavascriptMode.unrestricted,
-                          allowsInlineMediaPlayback: true,
-                        ))
+                  : _isIframe && _web != null
+                      ? WebViewWidget(controller: _web!)
                       : _vc != null
                           ? AspectRatio(aspectRatio: _vc!.value.aspectRatio,
                               child: VideoPlayer(_vc!))
@@ -120,7 +119,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             color: AppColors.bg,
             height: 86,
             child: ListView.separated(
-              scrollController: ScrollController(
+              controller: ScrollController(
                   initialScrollOffset: (_index * 62.0).clamp(0.0, double.maxFinite)),
               padding: const EdgeInsets.all(12),
               scrollDirection: Axis.horizontal,

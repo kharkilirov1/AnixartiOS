@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../bookmarks/bookmarks_screen.dart';
 import '../home/home_screen.dart';
 import '../root.dart';
 import '../widgets.dart';

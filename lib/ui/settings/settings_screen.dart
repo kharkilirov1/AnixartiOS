@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/theme.dart';
 import '../root.dart';
+import '../widgets.dart';
 
 /// Настройки (screenshot 09): список секций с иконками + версия.
 class SettingsScreen extends StatelessWidget {
