@@ -34,8 +34,18 @@ jobs:
         run: |
           cp android_signing/anixart-release.jks android/app/
           cp android_signing/key.properties android/
-          sed -i 's/signingConfig = signingConfigs.debug/signingConfig = signingConfigs.release/' android/app/build.gradle
-          grep -n "signingConfig" android/app/build.gradle
+          python3 - <<'EOF'
+          import glob
+          path = glob.glob('android/app/build.gradle*')[0]
+          s = open(path).read()
+          s = s.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.release')
+          s = s.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release')
+          open(path, 'w').write(s)
+          print('patched', path)
+          for line in s.splitlines():
+              if 'signingConfig' in line:
+                  print(line.strip())
+          EOF
 
       - name: flutter pub get
         run: flutter pub get
