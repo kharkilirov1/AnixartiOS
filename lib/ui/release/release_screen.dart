@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../home/home_screen.dart';
 import '../root.dart';
 import '../widgets.dart';
+import 'comments_screen.dart';
 
 /// Страница релиза (screenshots 11/12): blurred backdrop, centered poster,
 /// title + original + age, pills row, play button, info rows, genres, description.
@@ -110,7 +111,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                         Expanded(
                           flex: 3,
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () => _showStatusMenu(r),
                             style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: AppColors.outline),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -127,15 +128,20 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                         Expanded(
                           flex: 3,
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () => _toggleFavorite(r),
                             style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: AppColors.outline),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
                                 padding: const EdgeInsets.symmetric(vertical: 11)),
                             child: Row(mainAxisSize: MainAxisSize.min, children: [
-                              Text('${r.favoriteCount}', style: const TextStyle(fontSize: 14.5)),
+                              Text('${r.favoriteCount + (r.isFavorite ? 0 : 0)}',
+                                  style: const TextStyle(fontSize: 14.5)),
                               const SizedBox(width: 8),
-                              const Icon(Icons.bookmark_border_rounded, size: 17),
+                              Icon(
+                                r.isFavorite ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                                size: 17,
+                                color: r.isFavorite ? AppColors.statPlans : null,
+                              ),
                             ]),
                           ),
                         ),
@@ -143,7 +149,8 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                         Expanded(
                           flex: 2,
                           child: OutlinedButton(
-                            onPressed: () {},
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => CommentsScreen(release: r))),
                             style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: AppColors.outline),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -175,7 +182,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                         ),
                         IconButton(
                             icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
-                            onPressed: () {}),
+                            onPressed: () => _showMoreMenu(r)),
                       ]),
                     ),
                     // Note banner
@@ -228,6 +235,186 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
   String _listTitle(int? status) {
     final s = ProfileListStatus.values.where((e) => e.value == status).firstOrNull;
     return s?.title ?? 'Не смотрю';
+  }
+
+  // MARK: Actions (status / favorite / vote)
+
+  Future<void> _showStatusMenu(Release r) async {
+    if (!Api.I.isAuthorized) {
+      _snack('Войдите в аккаунт, чтобы добавлять в списки');
+      return;
+    }
+    final selected = await showModalBottomSheet<ProfileListStatus>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(padding: EdgeInsets.all(14),
+              child: Text('Список просмотра', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+          for (final s in ProfileListStatus.values)
+            ListTile(
+              title: Text(s.title),
+              trailing: r.profileListStatus == s.value
+                  ? const Icon(Icons.check_rounded, color: AppColors.statWatching)
+                  : null,
+              onTap: () => Navigator.pop(context, s),
+            ),
+          const Divider(color: AppColors.outline, height: 1),
+          ListTile(
+            title: const Text('Убрать из списка'),
+            textColor: AppColors.badgeNew,
+            onTap: () => Navigator.pop(context, null),
+          ),
+        ]),
+      ),
+    );
+    if (selected == null && r.profileListStatus == null) return;
+    try {
+      if (selected == null) {
+        await Api.I.listDelete(ProfileListStatus.values.firstWhere((e) => e.value == r.profileListStatus), r.id);
+        if (mounted) setState(() => _release = _withStatus(r, null));
+      } else {
+        await Api.I.listAdd(selected, r.id);
+        if (mounted) setState(() => _release = _withStatus(r, selected.value));
+      }
+    } catch (e) {
+      _snack('$e');
+    }
+  }
+
+  Release _withStatus(Release r, int? status) => Release(
+    id: r.id, titleRu: r.titleRu, titleOriginal: r.titleOriginal, description: r.description,
+    poster: r.poster, image: r.image, screenshots: r.screenshots, year: r.year,
+    season: r.season, statusId: r.statusId, ageRating: r.ageRating, broadcast: r.broadcast,
+    duration: r.duration, category: r.category, status: r.status, genres: r.genres,
+    country: r.country, studio: r.studio, director: r.director, author: r.author,
+    translators: r.translators, source: r.source, note: r.note,
+    episodesTotal: r.episodesTotal, episodesReleased: r.episodesReleased,
+    grade: r.grade, rating: r.rating, voteCount: r.voteCount, yourVote: r.yourVote,
+    favoriteCount: r.favoriteCount, watchingCount: r.watchingCount, completedCount: r.completedCount,
+    droppedCount: r.droppedCount, holdOnCount: r.holdOnCount, planCount: r.planCount,
+    collectionCount: r.collectionCount, commentCount: r.commentCount,
+    commentPerDayCount: r.commentPerDayCount, relatedCount: r.relatedCount,
+    relatedReleases: r.relatedReleases, recommendedReleases: r.recommendedReleases,
+    isFavorite: r.isFavorite, isViewed: r.isViewed, isAdult: r.isAdult, isDeleted: r.isDeleted,
+    isViewBlocked: r.isViewBlocked, isPlayDisabled: r.isPlayDisabled,
+    canTorlookSearch: r.canTorlookSearch, canVideoAppeal: r.canVideoAppeal,
+    profileListStatus: status, lastViewEpisode: r.lastViewEpisode,
+    lastViewTimestamp: r.lastViewTimestamp, episodeLastUpdate: r.episodeLastUpdate,
+    releaseDate: r.releaseDate, lastUpdateDate: r.lastUpdateDate, airedOnDate: r.airedOnDate,
+  );
+
+  Future<void> _toggleFavorite(Release r) async {
+    if (!Api.I.isAuthorized) {
+      _snack('Войдите в аккаунт, чтобы добавлять в избранное');
+      return;
+    }
+    try {
+      if (r.isFavorite) {
+        await Api.I.favoriteDelete(r.id);
+        if (mounted) {
+          setState(() {
+            _release = Release(
+              id: r.id, titleRu: r.titleRu, titleOriginal: r.titleOriginal,
+              description: r.description, poster: r.poster, image: r.image,
+              screenshots: r.screenshots, year: r.year, season: r.season,
+              statusId: r.statusId, ageRating: r.ageRating, broadcast: r.broadcast,
+              duration: r.duration, category: r.category, status: r.status,
+              genres: r.genres, country: r.country, studio: r.studio, director: r.director,
+              author: r.author, translators: r.translators, source: r.source, note: r.note,
+              episodesTotal: r.episodesTotal, episodesReleased: r.episodesReleased,
+              grade: r.grade, rating: r.rating, voteCount: r.voteCount, yourVote: r.yourVote,
+              favoriteCount: r.favoriteCount - 1, watchingCount: r.watchingCount,
+              completedCount: r.completedCount, droppedCount: r.droppedCount,
+              holdOnCount: r.holdOnCount, planCount: r.planCount,
+              collectionCount: r.collectionCount, commentCount: r.commentCount,
+              commentPerDayCount: r.commentPerDayCount, relatedCount: r.relatedCount,
+              relatedReleases: r.relatedReleases, recommendedReleases: r.recommendedReleases,
+              isFavorite: false, isViewed: r.isViewed, isAdult: r.isAdult, isDeleted: r.isDeleted,
+              isViewBlocked: r.isViewBlocked, isPlayDisabled: r.isPlayDisabled,
+              canTorlookSearch: r.canTorlookSearch, canVideoAppeal: r.canVideoAppeal,
+              profileListStatus: r.profileListStatus, lastViewEpisode: r.lastViewEpisode,
+              lastViewTimestamp: r.lastViewTimestamp, episodeLastUpdate: r.episodeLastUpdate,
+              releaseDate: r.releaseDate, lastUpdateDate: r.lastUpdateDate, airedOnDate: r.airedOnDate,
+            );
+          });
+        }
+      } else {
+        await Api.I.favoriteAdd(r.id);
+        if (mounted) {
+          setState(() {
+            _release = Release(
+              id: r.id, titleRu: r.titleRu, titleOriginal: r.titleOriginal,
+              description: r.description, poster: r.poster, image: r.image,
+              screenshots: r.screenshots, year: r.year, season: r.season,
+              statusId: r.statusId, ageRating: r.ageRating, broadcast: r.broadcast,
+              duration: r.duration, category: r.category, status: r.status,
+              genres: r.genres, country: r.country, studio: r.studio, director: r.director,
+              author: r.author, translators: r.translators, source: r.source, note: r.note,
+              episodesTotal: r.episodesTotal, episodesReleased: r.episodesReleased,
+              grade: r.grade, rating: r.rating, voteCount: r.voteCount, yourVote: r.yourVote,
+              favoriteCount: r.favoriteCount + 1, watchingCount: r.watchingCount,
+              completedCount: r.completedCount, droppedCount: r.droppedCount,
+              holdOnCount: r.holdOnCount, planCount: r.planCount,
+              collectionCount: r.collectionCount, commentCount: r.commentCount,
+              commentPerDayCount: r.commentPerDayCount, relatedCount: r.relatedCount,
+              relatedReleases: r.relatedReleases, recommendedReleases: r.recommendedReleases,
+              isFavorite: true, isViewed: r.isViewed, isAdult: r.isAdult, isDeleted: r.isDeleted,
+              isViewBlocked: r.isViewBlocked, isPlayDisabled: r.isPlayDisabled,
+              canTorlookSearch: r.canTorlookSearch, canVideoAppeal: r.canVideoAppeal,
+              profileListStatus: r.profileListStatus, lastViewEpisode: r.lastViewEpisode,
+              lastViewTimestamp: r.lastViewTimestamp, episodeLastUpdate: r.episodeLastUpdate,
+              releaseDate: r.releaseDate, lastUpdateDate: r.lastUpdateDate, airedOnDate: r.airedOnDate,
+            );
+          });
+        }
+      }
+    } catch (e) {
+      _snack('$e');
+    }
+  }
+
+  Future<void> _showMoreMenu(Release r) async {
+    final vote = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(padding: EdgeInsets.all(14),
+              child: Text('Оценить релиз', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700))),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: StatefulBuilder(builder: (context, setSheet) {
+              var hovered = r.yourVote ?? 0;
+              return Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                for (var star = 1; star <= 5; star++)
+                  IconButton(
+                    iconSize: 36,
+                    icon: Icon(star <= hovered ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: AppColors.statHoldOn),
+                    onPressed: () => Navigator.pop(context, star),
+                  ),
+              ]);
+            }),
+          ),
+        ]),
+      ),
+    );
+    if (vote == null) return;
+    try {
+      await Api.I.vote(r.id, vote);
+      _snack('Оценка $vote сохранена');
+      _load();
+    } catch (e) {
+      _snack('$e');
+    }
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _countryLine(Release r) {

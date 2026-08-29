@@ -26,6 +26,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   WebViewController? _web;
   String? _error;
 
+  /// Episodes marked iframe=true must be opened through the Anixart embed
+  /// wrapper (same as WebPlayerActivity in the original app): a bare
+  /// kodikplayer.com link responds 404.
+  static const String _iframeEmbedUrl = 'https://anixmirai.com/iframe?url=';
+
   @override
   void initState() {
     super.initState();
@@ -50,9 +55,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (raw.isEmpty) { setState(() => _error = 'Ссылка на эпизод отсутствует'); return; }
 
     if (ep.iframe == true) {
+      final wrapped = '$_iframeEmbedUrl${Uri.encodeQueryComponent(raw)}';
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..loadRequest(Uri.parse(raw));
+        ..loadRequest(Uri.parse(wrapped));
       setState(() { _isIframe = true; _web = controller; });
       return;
     }
@@ -107,7 +113,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: _error != null
                   ? Text(_error!, style: const TextStyle(color: Colors.white70))
                   : _isIframe && _web != null
-                      ? WebViewWidget(controller: _web!)
+                      ? SizedBox.expand(child: WebViewWidget(controller: _web!))
                       : _vc != null
                           ? AspectRatio(aspectRatio: _vc!.value.aspectRatio,
                               child: VideoPlayer(_vc!))
