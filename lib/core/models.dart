@@ -36,6 +36,9 @@ class VideoBanner {
 class Release {
   final int id;
   final String? titleRu, titleOriginal, description, poster, image;
+  /// Полные URL кадров (в extended-ответе).
+  final List<String> screenshotImages;
+  /// Хеши кадров (без домена) — для построения URL, если полных нет.
   final List<String> screenshots;
   final String? year;
   final int? season, statusId, ageRating, broadcast, duration;
@@ -60,6 +63,7 @@ class Release {
   Release({
     required this.id,
     this.titleRu, this.titleOriginal, this.description, this.poster, this.image,
+    this.screenshotImages = const [],
     this.screenshots = const [],
     this.year, this.season, this.statusId, this.ageRating, this.broadcast, this.duration,
     this.category, this.status,
@@ -93,6 +97,7 @@ class Release {
       poster: asStr('poster'),
       image: asStr('image'),
       screenshots: ((j['screenshots'] as List?) ?? []).whereType<String>().toList(),
+      screenshotImages: ((j['screenshot_images'] as List?) ?? []).whereType<String>().toList(),
       year: asStr('year'),
       season: asInt('season'),
       statusId: asInt('status_id'),

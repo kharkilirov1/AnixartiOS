@@ -338,7 +338,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                     _peopleInLists(r),
 
                     // Кадры
-                    if ((r.screenshots ?? []).isNotEmpty) ...[
+                    if ((r.screenshotImages.isNotEmpty)) ...[
                       const SizedBox(height: 18),
                       const Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
                           child: Text('Кадры', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))),
@@ -347,12 +347,12 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                         child: ListView.separated(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          itemCount: r.screenshots!.length,
+                          itemCount: r.screenshotImages.length,
                           separatorBuilder: (_, __) => const SizedBox(width: 10),
                           itemBuilder: (context, i) => ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: CachedNetworkImage(
-                                  imageUrl: r.screenshots![i], width: 168, height: 96,
+                                  imageUrl: r.screenshotImages[i], width: 168, height: 96,
                                   fit: BoxFit.cover,
                                   errorWidget: (_, __, ___) => Container(
                                       width: 168, height: 96, color: AppColors.surface))),
@@ -501,7 +501,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
 
   Release _withStatus(Release r, int? status) => Release(
     id: r.id, titleRu: r.titleRu, titleOriginal: r.titleOriginal, description: r.description,
-    poster: r.poster, image: r.image, screenshots: r.screenshots, year: r.year,
+    poster: r.poster, image: r.image, screenshotImages: r.screenshotImages, screenshots: r.screenshots, year: r.year,
     season: r.season, statusId: r.statusId, ageRating: r.ageRating, broadcast: r.broadcast,
     duration: r.duration, category: r.category, status: r.status, genres: r.genres,
     country: r.country, studio: r.studio, director: r.director, author: r.author,
@@ -534,7 +534,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
             _release = Release(
               id: r.id, titleRu: r.titleRu, titleOriginal: r.titleOriginal,
               description: r.description, poster: r.poster, image: r.image,
-              screenshots: r.screenshots, year: r.year, season: r.season,
+              screenshotImages: r.screenshotImages, screenshots: r.screenshots, year: r.year, season: r.season,
               statusId: r.statusId, ageRating: r.ageRating, broadcast: r.broadcast,
               duration: r.duration, category: r.category, status: r.status,
               genres: r.genres, country: r.country, studio: r.studio, director: r.director,
@@ -563,7 +563,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
             _release = Release(
               id: r.id, titleRu: r.titleRu, titleOriginal: r.titleOriginal,
               description: r.description, poster: r.poster, image: r.image,
-              screenshots: r.screenshots, year: r.year, season: r.season,
+              screenshotImages: r.screenshotImages, screenshots: r.screenshots, year: r.year, season: r.season,
               statusId: r.statusId, ageRating: r.ageRating, broadcast: r.broadcast,
               duration: r.duration, category: r.category, status: r.status,
               genres: r.genres, country: r.country, studio: r.studio, director: r.director,
