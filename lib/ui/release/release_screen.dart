@@ -47,16 +47,15 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
           ? (_error != null
               ? SafeArea(child: ErrorCentered(message: _error!, onRetry: _load))
               : const Center(child: CircularProgressIndicator(color: AppColors.textSecondary)))
-          : Stack(children: [
-              // Blurred poster backdrop
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.22,
-                  child: CachedNetworkImage(imageUrl: r.image ?? '', fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => const SizedBox()),
-                ),
+          // Фон через DecorationImage — не участвует в hit-test, скролл живой.
+          ? Container(
+              decoration: BoxDecoration(
+                image: (r.image ?? '').isEmpty ? null : DecorationImage(
+                    image: CachedNetworkImageProvider(r.image!),
+                    fit: BoxFit.cover,
+                    opacity: 0.18),
               ),
-              SafeArea(
+              child: SafeArea(
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: 32),
                   children: [
@@ -194,7 +193,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(color: AppColors.surface,
                             borderRadius: BorderRadius.circular(14)),
-                        child: Text(r.note!,
+                        child: Text(stripHtml(r.note!),
                             style: const TextStyle(fontSize: 13.5, color: AppColors.textSecondary, height: 1.4)),
                       ),
                     ],
@@ -222,7 +221,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                     if ((r.description ?? '').isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                        child: Text(r.description!,
+                        child: Text(stripHtml(r.description!),
                             style: const TextStyle(fontSize: 14.5, height: 1.5,
                                 color: AppColors.textSecondary)),
                       ),
@@ -378,12 +377,12 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                       )),
 
                     // Комментарии (популярные и актуальные) — прямо на странице
-                    SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     CommentsPreview(releaseId: r.id, commentCount: r.commentCount),
                   ],
                 ),
               ),
-            ]),
+            ),
     );
   }
 

@@ -19,14 +19,19 @@ class DiscoverScreen extends StatefulWidget {
 
 class _DiscoverScreenState extends State<DiscoverScreen> {
   List<Map<String, dynamic>> _banners = [];
+  List<Release> _discussing = [];
 
   @override
-  void initState() { super.initState(); _loadBanners(); }
+  void initState() { super.initState(); _load(); }
 
-  Future<void> _loadBanners() async {
+  Future<void> _load() async {
     try {
       final list = await Api.I.interesting();
       if (mounted) setState(() => _banners = list.cast<Map<String, dynamic>>());
+    } catch (_) {}
+    try {
+      final resp = await Api.I.discussing(0);
+      if (mounted) setState(() => _discussing = resp.content);
     } catch (_) {}
   }
 
@@ -146,15 +151,16 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             padding: EdgeInsets.fromLTRB(16, 26, 16, 8),
             child: Text('Обсуждаемое сегодня', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
           ),
-          PagedScroll<Release>(
-            loader: (page) => Api.I.discussing(page),
-            itemBuilder: (_, r, __) => ReleaseListItem(
-              release: r,
-              onTap: () => Navigator.pushNamed(context, Routes.release,
-                  arguments: ReleaseArgs(release: r)),
-            ),
-            header: const SizedBox(height: 1),
-          ),
+          if (_discussing.isEmpty)
+            const Padding(padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator(color: AppColors.textSecondary)))
+          else
+            for (final r in _discussing)
+              ReleaseListItem(
+                release: r,
+                onTap: () => Navigator.pushNamed(context, Routes.release,
+                    arguments: ReleaseArgs(release: r)),
+              ),
         ],
       ),
     );

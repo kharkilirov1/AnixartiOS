@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import '../core/models.dart';
 import '../core/theme.dart';
 
+/// Убирает HTML-теги (API отдаёт <br>, <b> и т.п. в note/description).
+String stripHtml(String s) => s.replaceAll(RegExp(r'<[^>]*>'), ' ').replaceAll('  ', ' ');
+
 /// Poster with rounded corners and a fade placeholder.
 class Poster extends StatelessWidget {
   final String? url;
