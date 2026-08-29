@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api.dart';
 import '../../core/models.dart';
@@ -25,6 +26,33 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Collection> _collections = [];
   List<Profile> _profiles = [];
   String? _error;
+  List<String> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _history = prefs.getStringList('search_history') ?? []);
+  }
+
+  Future<void> _remember(String q) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = (prefs.getStringList('search_history') ?? [])..remove(q);
+    list.insert(0, q);
+    if (list.length > 15) list.removeRange(15, list.length);
+    await prefs.setStringList('search_history', list);
+    if (mounted) setState(() => _history = list);
+  }
+
+  Future<void> _clearHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('search_history');
+    if (mounted) setState(() => _history = []);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,8 +110,27 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _results() {
     if (!_searched) {
-      return const Center(child: Text('Введите название',
-          style: TextStyle(color: AppColors.textTertiary)));
+      // История запросов (эталон: скриншот 08).
+      if (_history.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return ListView(children: [
+        if (_history.length > 1)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(onPressed: _clearHistory, child: const Text('Очистить историю',
+                style: TextStyle(fontSize: 13, color: AppColors.textTertiary))),
+          ),
+        for (final q in _history)
+          ListTile(
+            leading: const Icon(Icons.history, color: AppColors.textTertiary),
+            title: Text(q, style: const TextStyle(fontSize: 15, color: AppColors.textSecondary)),
+            onTap: () {
+              _controller.text = q;
+              _run();
+            },
+          ),
+      ]);
     }
     if (_loading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.textSecondary));
@@ -118,6 +165,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Future<void> _run() async {
     final q = _controller.text.trim();
     if (q.isEmpty) return;
+    _remember(q);
     setState(() { _loading = true; _searched = true; _error = null; });
     try {
       switch (_scope) {

@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../bookmarks/bookmarks_screen.dart';
+import 'collection_detail_screen.dart';
 import '../widgets.dart';
 
 /// Коллекции (screenshot 17): Создать коллекцию / Мои коллекции / сортировка.
@@ -52,7 +53,7 @@ class CollectionsScreen extends StatelessWidget {
         Expanded(
           child: PagedScroll<Collection>(
             loader: (page) => Api.I.collections(page),
-            itemBuilder: (_, c, __) => CollectionCard(collection: c),
+            itemBuilder: (_, c, __) => CollectionCard(collection: c, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CollectionDetailScreen(collection: c)))),
           ),
         ),
       ]),

@@ -5,10 +5,62 @@ import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../widgets.dart';
 
+/// Блок «Комментарии — популярные и актуальные» прямо на странице релиза
+/// (первые несколько штук + «Показать все»).
+class CommentsPreview extends StatefulWidget {
+  final int releaseId;
+  final int commentCount;
+  const CommentsPreview({super.key, required this.releaseId, required this.commentCount});
+
+  @override
+  State<CommentsPreview> createState() => _CommentsPreviewState();
+}
+
+class _CommentsPreviewState extends State<CommentsPreview> {
+  List<ReleaseComment> _items = [];
+
+  @override
+  void initState() { super.initState(); _load(); }
+
+  Future<void> _load() async {
+    try {
+      final resp = await Api.I.comments(widget.releaseId, 0);
+      if (mounted) setState(() => _items = resp.content.take(5).toList());
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_items.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Divider(color: AppColors.outline, height: 1),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Комментарии', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+            SizedBox(height: 2),
+            Text('Популярные и актуальные',
+                style: TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+          ])),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => CommentsScreen(releaseId: widget.releaseId))),
+            child: const Text('Показать все',
+                style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary)),
+          ),
+        ]),
+      ),
+      for (final c in _items) _commentCell(c, compact: true),
+      const SizedBox(height: 8),
+    ]);
+  }
+}
+
 /// Комментарии релиза: список + отправка + голоса.
 class CommentsScreen extends StatefulWidget {
-  final Release release;
-  const CommentsScreen({super.key, required this.release});
+  final int releaseId;
+  const CommentsScreen({super.key, required this.releaseId});
 
   @override
   State<CommentsScreen> createState() => _CommentsScreenState();
@@ -29,7 +81,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
     if (_loading) return;
     setState(() { _loading = true; });
     try {
-      final resp = await Api.I.comments(widget.release.id, _page);
+      final resp = await Api.I.comments(widget.releaseId, _page);
       setState(() {
         _items.addAll(resp.content);
         _canMore = resp.content.length >= 20;
@@ -47,7 +99,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
     if (text.isEmpty || _sending) return;
     setState(() { _sending = true; });
     try {
-      await Api.I.addComment(widget.release.id, text,
+      await Api.I.addComment(widget.releaseId, text,
           parentCommentId: _replyTo?.id);
       _controller.clear();
       _replyTo = null;

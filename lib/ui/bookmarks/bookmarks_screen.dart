@@ -4,6 +4,7 @@ import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../home/home_screen.dart';
+import '../collections/collection_detail_screen.dart';
 import '../root.dart';
 import '../widgets.dart';
 
@@ -56,7 +57,38 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             },
           ),
         ),
-        Expanded(child: _body()),
+        Expanded(
+          child: Column(children: [
+            _bookmarksHeader(),
+            Expanded(child: _body()),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  /// Хедер «ВСЕГО · По добавл. ▼ · Шаффл» (эталон: скриншот 06).
+  Widget _bookmarksHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+      child: Row(children: [
+        const Text('ВСЕГО', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700,
+            color: AppColors.textTertiary, letterSpacing: 0.5)),
+        const SizedBox(width: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(20)),
+          child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.reorder, size: 15, color: AppColors.textSecondary),
+            SizedBox(width: 8),
+            Text('По добавл.', style: TextStyle(fontSize: 13.5, color: AppColors.textSecondary)),
+            SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down, size: 17, color: AppColors.textSecondary),
+          ]),
+        ),
+        const Spacer(),
+        IconButton(icon: const Icon(Icons.shuffle, size: 20, color: AppColors.textSecondary),
+            onPressed: () {}),
       ]),
     );
   }
@@ -71,7 +103,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       case 0:
         return PagedScroll<Collection>(
           loader: (page) => Api.I.collections(page),
-          itemBuilder: (_, c, __) => CollectionCard(collection: c),
+          itemBuilder: (_, c, __) => CollectionCard(collection: c, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => CollectionDetailScreen(collection: c)))),
         );
       case 1:
         return PagedScroll<Release>(

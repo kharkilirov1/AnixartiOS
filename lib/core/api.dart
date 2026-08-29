@@ -297,6 +297,11 @@ class Api {
     return _page(j, Collection.fromJson);
   }
 
+  Future<Pageable<Collection>> collectionsOfRelease(int releaseId, int page) async {
+    final j = await _call('GET', 'collection/all/release/$releaseId/$page');
+    return _page(j, Collection.fromJson);
+  }
+
   Future<Collection> collection(int id) async {
     final j = await _call('GET', 'collection/$id');
     if (j['collection'] == null) throw ApiException((j['code'] as num?)?.toInt() ?? 1, 'Коллекция недоступна');

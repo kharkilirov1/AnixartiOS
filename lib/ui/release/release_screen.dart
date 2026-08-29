@@ -150,7 +150,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                           flex: 2,
                           child: OutlinedButton(
                             onPressed: () => Navigator.push(context, MaterialPageRoute(
-                                builder: (_) => CommentsScreen(release: r))),
+                                builder: (_) => CommentsScreen(releaseId: r.id))),
                             style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: AppColors.outline),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -225,10 +225,219 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                             style: const TextStyle(fontSize: 14.5, height: 1.5,
                                 color: AppColors.textSecondary)),
                       ),
+
+                    // Трейлеры / Опенинги (video_banners)
+                    if ((r.videoBanners ?? []).isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        height: 130,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: r.videoBanners!.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, i) {
+                            final b = r.videoBanners![i];
+                            return GestureDetector(
+                              onTap: () => _snack('Раздел видео: ${b.name ?? ''}'),
+                              child: Stack(children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(14),
+                                  child: CachedNetworkImage(
+                                      imageUrl: b.image ?? '', width: 200, height: 130,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) => Container(
+                                          width: 200, height: 130, color: AppColors.surface)),
+                                ),
+                                Positioned.fill(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(14),
+                                        color: Colors.black26),
+                                    alignment: Alignment.center,
+                                    child: Text(b.name ?? '',
+                                        style: const TextStyle(fontSize: 17,
+                                            fontWeight: FontWeight.w700, color: Colors.white)),
+                                  ),
+                                ),
+                              ]),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+
+                    // Рейтинг: средняя оценка + гистограмма + звёзды
+                    if ((r.voteCount ?? 0) > 0) ...[
+                      const SizedBox(height: 22),
+                      const Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: Text('Рейтинг', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                          SizedBox(width: 92, child: Column(children: [
+                            Text((r.grade ?? 0).toStringAsFixed(1),
+                                style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800)),
+                            const SizedBox(height: 2),
+                            Text('${r.voteCount} голосов',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                                textAlign: TextAlign.center),
+                          ])),
+                          Expanded(child: Column(children: [
+                            for (final star in [5, 4, 3, 2, 1])
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2),
+                                child: Row(children: [
+                                  SizedBox(width: 14, child: Text('$star',
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textTertiary))),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(3),
+                                      child: LinearProgressIndicator(
+                                          value: _voteFraction(r, star),
+                                          minHeight: 8,
+                                          backgroundColor: AppColors.surface,
+                                          valueColor: const AlwaysStoppedAnimation(AppColors.textSecondary)))),
+                                ]),
+                              ),
+                          ])),
+                        ]),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                          for (var star = 1; star <= 5; star++)
+                            IconButton(
+                              iconSize: 34,
+                              icon: Icon(
+                                  (r.yourVote ?? 0) >= star ? Icons.star_rounded : Icons.star_outline_rounded,
+                                  color: AppColors.statHoldOn),
+                              onPressed: () async {
+                                try {
+                                  await Api.I.vote(r.id, star);
+                                  _snack('Оценка $star сохранена');
+                                  _load();
+                                } catch (e) { _snack('$e'); }
+                              },
+                            ),
+                        ]),
+                      ),
+                    ],
+
+                    // В списках у людей
+                    const SizedBox(height: 16),
+                    const Divider(color: AppColors.outline, height: 1),
+                    const Padding(padding: EdgeInsets.fromLTRB(16, 16, 16, 12),
+                        child: Text('В списках у людей', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))),
+                    _peopleInLists(r),
+
+                    // Кадры
+                    if ((r.screenshots ?? []).isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      const Padding(padding: EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: Text('Кадры', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700))),
+                      SizedBox(
+                        height: 96,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: r.screenshots!.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 10),
+                          itemBuilder: (context, i) => ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CachedNetworkImage(
+                                  imageUrl: r.screenshots![i], width: 168, height: 96,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Container(
+                                      width: 168, height: 96, color: AppColors.surface))),
+                        ),
+                      ),
+                    ],
+
+                    // Показать в коллекциях
+                    if ((r.collectionCount ?? 0) > 0)
+                      Padding(padding: const EdgeInsets.only(top: 18), child: InkWell(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => ReleaseCollectionsScreen(release: r))),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          child: Row(children: [
+                            Text('Показать в коллекциях',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                            const SizedBox(width: 10),
+                            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(8)),
+                                child: Text('${r.collectionCount}',
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary))),
+                            const Spacer(),
+                            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+                          ]),
+                        ),
+                      )),
+
+                    // Комментарии (популярные и актуальные) — прямо на странице
+                    SizedBox(height: 16),
+                    CommentsPreview(releaseId: r.id, commentCount: r.commentCount),
                   ],
                 ),
               ),
             ]),
+    );
+  }
+
+  double _voteFraction(Release r, int star) {
+    final total = (r.voteCount ?? 0).toDouble();
+    if (total <= 0) return 0;
+    final v = switch (star) {
+      1 => r.vote1Count ?? 0,
+      2 => r.vote2Count ?? 0,
+      3 => r.vote3Count ?? 0,
+      4 => r.vote4Count ?? 0,
+      _ => r.vote5Count ?? 0,
+    };
+    return v / total;
+  }
+
+  /// Полоса-стек и легенда «В списках у людей» (эталон rel_mid).
+  Widget _peopleInLists(Release r) {
+    final entries = <(Color, String, int)>[
+      (AppColors.statWatching, 'Смотрю', r.watchingCount),
+      (AppColors.statPlans, 'В планах', r.planCount),
+      (AppColors.statCompleted, 'Просмотрено', r.completedCount),
+      (AppColors.statHoldOn, 'Отложено', r.holdOnCount),
+      (AppColors.statDropped, 'Брошено', r.droppedCount),
+    ].where((e) => e.$3 > 0).toList();
+    final total = entries.fold<int>(0, (s, e) => s + e.$3);
+    if (total == 0) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: SizedBox(height: 26,
+              child: Row(children: [
+                for (final e in entries)
+                  Expanded(flex: e.$3, child: Container(color: e.$1)),
+              ])),
+        ),
+        const SizedBox(height: 12),
+        for (var i = 0; i < entries.length; i += 2)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(children: [
+              for (final e in entries.skip(i).take(2))
+                Expanded(child: Row(children: [
+                  Container(width: 14, height: 14, color: e.$1),
+                  const SizedBox(width: 8),
+                  Text(e.$2, style: const TextStyle(fontSize: 14.5)),
+                  const SizedBox(width: 6),
+                  Text('${e.$3}', style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700)),
+                ])),
+              if (entries.length - i == 1) const Expanded(child: SizedBox()),
+            ]),
+          ),
+      ]),
     );
   }
 

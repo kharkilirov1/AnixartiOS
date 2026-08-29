@@ -17,6 +17,22 @@ class RefEntity {
       RefEntity(id: (j['id'] as num?)?.toInt() ?? 0, name: j['name'] as String?);
 }
 
+/// Баннер видео-раздела релиза (трейлеры / опенинги).
+class VideoBanner {
+  final String? name, image, value;
+  final int? actionId;
+  final bool? isNew;
+  VideoBanner({this.name, this.image, this.value, this.actionId, this.isNew});
+
+  factory VideoBanner.fromJson(Map<String, dynamic> j) => VideoBanner(
+      name: j['name'] as String?,
+      image: j['image'] as String?,
+      value: j['value'] as String?,
+      actionId: (j['action_id'] as num?)?.toInt(),
+      isNew: j['is_new'] == true,
+  );
+}
+
 class Release {
   final int id;
   final String? titleRu, titleOriginal, description, poster, image;
@@ -28,6 +44,8 @@ class Release {
   final int? episodesTotal, episodesReleased;
   final double? grade;
   final int? rating, voteCount, yourVote;
+  final int vote1Count, vote2Count, vote3Count, vote4Count, vote5Count;
+  final List<VideoBanner> videoBanners;
   final int favoriteCount, watchingCount, completedCount, droppedCount, holdOnCount, planCount, collectionCount, commentCount, commentPerDayCount;
   final int? relatedCount;
   final List<Release> relatedReleases, recommendedReleases;
@@ -48,6 +66,8 @@ class Release {
     this.genres, this.country, this.studio, this.director, this.author, this.translators, this.source, this.note,
     this.episodesTotal, this.episodesReleased,
     this.grade, this.rating, this.voteCount, this.yourVote,
+    this.vote1Count = 0, this.vote2Count = 0, this.vote3Count = 0, this.vote4Count = 0, this.vote5Count = 0,
+    this.videoBanners = const [],
     this.favoriteCount = 0, this.watchingCount = 0, this.completedCount = 0,
     this.droppedCount = 0, this.holdOnCount = 0, this.planCount = 0,
     this.collectionCount = 0, this.commentCount = 0, this.commentPerDayCount = 0,
@@ -95,6 +115,13 @@ class Release {
       rating: asInt('rating'),
       voteCount: asInt('vote_count'),
       yourVote: asInt('your_vote'),
+      vote1Count: asInt('vote_1_count') ?? 0,
+      vote2Count: asInt('vote_2_count') ?? 0,
+      vote3Count: asInt('vote_3_count') ?? 0,
+      vote4Count: asInt('vote_4_count') ?? 0,
+      vote5Count: asInt('vote_5_count') ?? 0,
+      videoBanners: ((j['video_banners'] as List?) ?? [])
+          .whereType<Map<String, dynamic>>().map(VideoBanner.fromJson).toList(),
       favoriteCount: asInt('favorites_count') ?? 0,
       watchingCount: asInt('watching_count') ?? 0,
       completedCount: asInt('completed_count') ?? 0,
