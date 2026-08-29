@@ -30,6 +30,13 @@ jobs:
           print('manifest ok')
           EOF
 
+      - name: Apply stable release signing (Android)
+        run: |
+          cp android_signing/anixart-release.jks android/app/
+          cp android_signing/key.properties android/
+          sed -i 's/signingConfig = signingConfigs.debug/signingConfig = signingConfigs.release/' android/app/build.gradle
+          grep -n "signingConfig" android/app/build.gradle
+
       - name: flutter pub get
         run: flutter pub get
 
