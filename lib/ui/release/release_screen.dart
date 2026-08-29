@@ -48,7 +48,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
               ? SafeArea(child: ErrorCentered(message: _error!, onRetry: _load))
               : const Center(child: CircularProgressIndicator(color: AppColors.textSecondary)))
           // Фон через DecorationImage — не участвует в hit-test, скролл живой.
-          ? Container(
+          : Container(
               decoration: BoxDecoration(
                 image: (r.image ?? '').isEmpty ? null : DecorationImage(
                     image: CachedNetworkImageProvider(r.image!),
