@@ -51,9 +51,40 @@ class _CommentsPreviewState extends State<CommentsPreview> {
           ),
         ]),
       ),
-      for (final c in _items) _commentCell(c, compact: true),
+      for (final c in _items) _previewCell(c),
       const SizedBox(height: 8),
     ]);
+  }
+
+  Widget _previewCell(ReleaseComment c) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          CircleAvatar(radius: 13, backgroundImage: NetworkImage(c.profile?.avatar ?? '')),
+          const SizedBox(width: 10),
+          Text(c.profile?.login ?? '',
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+          const SizedBox(width: 8),
+          Text(_relative(c.timestamp),
+              style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+        ]),
+        Padding(
+          padding: const EdgeInsets.only(top: 5),
+          child: Text(c.message ?? '',
+              maxLines: 3, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
+        ),
+      ]),
+    );
+  }
+
+  String _relative(int? ts) {
+    if (ts == null) return '';
+    final d = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts * 1000));
+    if (d.inMinutes < 60) return '${d.inMinutes} мин назад';
+    if (d.inHours < 24) return '${d.inHours} ч назад';
+    return '${d.inDays} дн назад';
   }
 }
 
