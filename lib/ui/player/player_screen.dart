@@ -32,10 +32,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   /// Injected into the WebView: wraps fetch/XHR/HTMLMediaElement.src so the
   /// player's real stream URLs surface through the Sniffer channel.
-  static const String _snifferJs = '''
+  static const String _snifferJs = r'''
 (function(){
   if (window.__anix_sniff) return; window.__anix_sniff = true;
-  var re = /\\.(m3u8|mp4)(\\?|$)/i;
+  var re = /\.(m3u8|mp4)(\?|$)/i;
   var post = function(u){ try { Sniffer.postMessage(u); } catch(e){} };
   var of = window.fetch;
   window.fetch = function(input){
@@ -111,18 +111,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final wrapped = '$_iframeEmbedUrl${Uri.encodeQueryComponent(raw)}';
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..addJavaScriptChannel('Sniffer', onMessage: (msg) => _onSniffed(msg.message))
-        ..setNavigationDelegate(NavigationDelegate(
-          onPageFinished: (_) => controller.runJavaScript(_snifferJs),
-          onNavigationRequest: (req) {
-            if (RegExp(r'\.(m3u8|mp4)(\?|$)', caseSensitive: false).hasMatch(req.url)) {
-              _onSniffed(req.url);
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-        ))
+        ..addJavaScriptChannel('Sniffer', onMessageReceived: (msg) => _onSniffed(msg.message))
         ..loadRequest(Uri.parse(wrapped));
+      controller.setNavigationDelegate(NavigationDelegate(
+        onPageFinished: (_) => controller.runJavaScript(_snifferJs),
+        onNavigationRequest: (req) {
+          if (RegExp(r'\.(m3u8|mp4)(\?|$)', caseSensitive: false).hasMatch(req.url)) {
+            _onSniffed(req.url);
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
+      ));
       if (mounted) {
         setState(() { _mode = PlayerMode.webview; _web = controller; _webUrl = wrapped; });
       }
