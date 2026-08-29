@@ -6,6 +6,7 @@ import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../bookmarks/bookmarks_screen.dart';
 import '../home/home_screen.dart';
+import '../profile/profile_screen.dart';
 import '../root.dart';
 import '../widgets.dart';
 
@@ -154,9 +155,11 @@ class _SearchScreenState extends State<SearchScreen> {
               final p = _profiles[i];
               return ListTile(
                 leading: CircleAvatar(backgroundImage: NetworkImage(p.avatar ?? '')),
-                title: Text(p.login ?? ''),
-                subtitle: Text(p.status ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                onTap: () {},
+                title: Text(p.login ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: Text(p.status ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12.5)),
+                onTap: () => Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => ProfileScreen(viewProfileId: p.id))),
               );
             });
     }

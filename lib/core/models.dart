@@ -33,6 +33,41 @@ class VideoBanner {
   );
 }
 
+/// Видео в видео-разделе релиза (трейлер/опенинг/амв).
+class ReleaseVideo {
+  final int id;
+  final String? title, image, url, playerUrl;
+  final String? hostingName, hostingIcon;
+  ReleaseVideo({required this.id, this.title, this.image, this.url, this.playerUrl,
+      this.hostingName, this.hostingIcon});
+
+  factory ReleaseVideo.fromJson(Map<String, dynamic> j) {
+    final hosting = j['hosting'];
+    return ReleaseVideo(
+        id: (j['id'] as num?)?.toInt() ?? 0,
+        title: j['title'] as String?,
+        image: j['image'] as String?,
+        url: j['url'] as String?,
+        playerUrl: j['player_url'] as String?,
+        hostingName: hosting is Map ? hosting['name'] as String? : null,
+        hostingIcon: hosting is Map ? hosting['icon'] as String? : null,
+    );
+  }
+}
+
+/// Категория видео (Трейлеры / Опенинги / ...).
+class VideoBlock {
+  final String categoryName;
+  final List<ReleaseVideo> videos;
+  VideoBlock({required this.categoryName, required this.videos});
+
+  factory VideoBlock.fromJson(Map<String, dynamic> j) => VideoBlock(
+      categoryName: (j['category'] as Map?)?['name'] as String? ?? 'Видео',
+      videos: ((j['videos'] as List?) ?? [])
+          .whereType<Map<String, dynamic>>().map(ReleaseVideo.fromJson).toList(),
+  );
+}
+
 class Release {
   final int id;
   final String? titleRu, titleOriginal, description, poster, image;
@@ -441,4 +476,13 @@ class FilterRequest {
     if (genres != null && genres!.isNotEmpty) 'genres': genres,
     if (isGenresExcludeModeEnabled != null) 'is_genres_exclude_mode_enabled': isGenresExcludeModeEnabled,
   };
+
+  static FilterRequest fromJson(Map<String, dynamic> j) => FilterRequest()
+    ..categoryId = (j['category_id'] as num?)?.toInt()
+    ..statusId = (j['status_id'] as num?)?.toInt()
+    ..sort = (j['sort'] as num?)?.toInt()
+    ..startYear = (j['start_year'] as num?)?.toInt()
+    ..endYear = (j['end_year'] as num?)?.toInt()
+    ..genres = (j['genres'] as List?)?.whereType<String>().toList()
+    ..isGenresExcludeModeEnabled = j['is_genres_exclude_mode_enabled'] == true;
 }

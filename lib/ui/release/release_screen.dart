@@ -9,6 +9,7 @@ import '../home/home_screen.dart';
 import '../root.dart';
 import '../widgets.dart';
 import 'comments_screen.dart';
+import 'release_videos_screen.dart';
 
 /// Страница релиза (screenshots 11/12): blurred backdrop, centered poster,
 /// title + original + age, pills row, play button, info rows, genres, description.
@@ -245,7 +246,8 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                           itemBuilder: (context, i) {
                             final b = r.videoBanners![i];
                             return GestureDetector(
-                              onTap: () => _snack('Раздел видео: ${b.name ?? ''}'),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(
+                                  builder: (_) => ReleaseVideosScreen(release: r))),
                               child: Stack(children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(14),

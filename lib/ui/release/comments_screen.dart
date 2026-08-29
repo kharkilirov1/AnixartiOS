@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../profile/profile_screen.dart';
 import '../widgets.dart';
 
 /// Блок «Комментарии — популярные и актуальные» прямо на странице релиза
@@ -63,8 +64,12 @@ class _CommentsPreviewState extends State<CommentsPreview> {
         Row(children: [
           CircleAvatar(radius: 13, backgroundImage: NetworkImage(c.profile?.avatar ?? '')),
           const SizedBox(width: 10),
-          Text(c.profile?.login ?? '',
-              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ProfileScreen(viewProfileId: c.profile!.id))),
+            child: Text(c.profile?.login ?? '',
+                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
+          ),
           const SizedBox(width: 8),
           Text(_relative(c.timestamp),
               style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
@@ -77,6 +82,22 @@ class _CommentsPreviewState extends State<CommentsPreview> {
         ),
       ]),
     );
+  }
+
+  Future<void> _toggleReplies(ReleaseComment c) async {
+    if (_showReplies.contains(c.id)) {
+      setState(() => _showReplies.remove(c.id));
+      return;
+    }
+    setState(() { _showReplies.add(c.id); _repliesLoading.add(c.id); });
+    try {
+      final resp = await Api.I.commentReplies(c.id, 0);
+      _replies[c.id] = resp.content;
+    } catch (_) {
+      _replies[c.id] = const [];
+    } finally {
+      if (mounted) setState(() => _repliesLoading.remove(c.id));
+    }
   }
 
   String _relative(int? ts) {
@@ -104,6 +125,10 @@ class _CommentsScreenState extends State<CommentsScreen> {
   bool _loading = false, _canMore = true, _sending = false;
   String? _error;
   ReleaseComment? _replyTo;
+  final Set<int> _revealed = {};
+  final Set<int> _showReplies = {};
+  final Set<int> _repliesLoading = {};
+  final Map<int, List<ReleaseComment>> _replies = {};
 
   @override
   void initState() { super.initState(); _load(); }
@@ -219,7 +244,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
     );
   }
 
-  Widget _commentCell(ReleaseComment c) {
+  Widget _commentCell(ReleaseComment c, {bool isReply = false}) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -227,7 +252,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
           CircleAvatar(radius: 15, backgroundImage: NetworkImage(c.profile?.avatar ?? '')),
           const SizedBox(width: 10),
           GestureDetector(
-            onTap: () {},
+            onTap: () => Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ProfileScreen(viewProfileId: c.profile!.id))),
             child: Text(c.profile?.login ?? '',
                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
           ),
@@ -236,9 +262,22 @@ class _CommentsScreenState extends State<CommentsScreen> {
               style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
         ]),
         Padding(
-          padding: const EdgeInsets.fromLTRB(40, 6, 0, 0),
-          child: Text(c.message ?? '',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
+          padding: EdgeInsets.fromLTRB(isReply ? 60 : 40, 6, 0, 0),
+          child: c.isSpoiler == true && !_revealed.contains(c.id)
+              ? InkWell(
+                  onTap: () => setState(() => _revealed.add(c.id)),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Text('Спойлер — нажмите, чтобы показать',
+                        style: TextStyle(fontSize: 13, color: AppColors.textTertiary)),
+                  ),
+                )
+              : Text(c.message ?? '',
+                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(40, 6, 0, 0),
@@ -251,17 +290,56 @@ class _CommentsScreenState extends State<CommentsScreen> {
             const SizedBox(width: 16),
             InkWell(onTap: () => setState(() => _replyTo = c), child:
                 const Text('Ответить', style: TextStyle(fontSize: 12.5, color: AppColors.textTertiary))),
+            if ((c.replyCount ?? 0) > 0) ...[
+              const SizedBox(width: 16),
+              InkWell(
+                onTap: () => _toggleReplies(c),
+                child: Text(_showReplies.contains(c.id) ? 'Скрыть ответы' : 'Показать ${c.replyCount} отв.',
+                    style: const TextStyle(fontSize: 12.5, color: AppColors.carmine)),
+              ),
+            ],
           ]),
         ),
+        if (_showReplies.contains(c.id))
+          if (_repliesLoading.contains(c.id))
+            const Padding(padding: EdgeInsets.fromLTRB(60, 8, 0, 0),
+                child: SizedBox(width: 18, height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textSecondary)))
+          else
+            for (final r in (_replies[c.id] ?? const <ReleaseComment>[]))
+              _commentCell(r, isReply: true),
       ]),
     );
   }
 
+  Future<void> _toggleReplies(ReleaseComment c) async {
+    if (_showReplies.contains(c.id)) {
+      setState(() => _showReplies.remove(c.id));
+      return;
+    }
+    setState(() { _showReplies.add(c.id); _repliesLoading.add(c.id); });
+    try {
+      final resp = await Api.I.commentReplies(c.id, 0);
+      _replies[c.id] = resp.content;
+    } catch (_) {
+      _replies[c.id] = const [];
+    } finally {
+      if (mounted) setState(() => _repliesLoading.remove(c.id));
+    }
+  }
+
   String _relative(int? ts) {
     if (ts == null) return '';
-    final d = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts * 1000));
-    if (d.inMinutes < 60) return '${d.inMinutes} мин';
-    if (d.inHours < 24) return '${d.inHours} ч';
-    return '${d.inDays} дн';
+    final date = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
+    final now = DateTime.now();
+    final hm = 'в ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    final today = DateTime(now.year, now.month, now.day);
+    final that = DateTime(date.year, date.month, date.day);
+    final diffDays = today.difference(that).inDays;
+    if (diffDays == 0) return 'сегодня $hm';
+    if (diffDays == 1) return 'вчера $hm';
+    const months = ['янв.','февр.','марта','апр.','мая','июня','июля','авг.','сент.','окт.','нояб.','дек.'];
+    if (date.year == now.year) return '${date.day} ${months[date.month - 1]} $hm';
+    return '${date.day} ${months[date.month - 1]} ${date.year} $hm';
   }
 }

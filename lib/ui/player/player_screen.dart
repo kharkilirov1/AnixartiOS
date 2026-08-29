@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -66,6 +67,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   final Set<String> _seen = {};
   String? _error;
   bool _controlsVisible = true;
+  bool _isFullscreen = false;
   Timer? _hideTimer;
 
   @override
@@ -77,8 +79,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void dispose() {
     _hideTimer?.cancel();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _vc?.dispose();
     super.dispose();
+  }
+
+  /// Fullscreen: landscape + immersive.
+  void _toggleFullscreen() {
+    _isFullscreen = !_isFullscreen;
+    if (_isFullscreen) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+    if (mounted) setState(() {});
   }
 
   Episode get _episode => widget.episodes[_index];
@@ -141,15 +159,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
       final controller = VideoPlayerController.networkUrl(Uri.parse(direct));
       await controller.initialize();
+      final saved = _episode.playbackPosition ?? 0;
+      if (saved > 10) {
+        await controller.seekTo(Duration(seconds: saved));
+      }
       await controller.play();
       if (mounted) {
         setState(() { _mode = PlayerMode.native; _vc = controller; });
         _armAutoHide();
       }
     } catch (_) {
-      if (mounted) {
-        setState(() { _mode = PlayerMode.error; _error = 'Не удалось открыть видео напрямую'; });
-      }
+      if (mounted) setState(() { _mode = PlayerMode.error; _error = 'Не удалось открыть видео напрямую'; });
     }
   }
 
@@ -308,6 +328,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
           if (_index < widget.episodes.length - 1)
             IconButton(icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 34),
                 onPressed: () => _openEpisode(_index + 1)),
+          const SizedBox(width: 8),
+          IconButton(
+              icon: Icon(_isFullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded,
+                  color: Colors.white, size: 30),
+              onPressed: _toggleFullscreen),
         ]),
         const SizedBox(height: 10),
       ]),

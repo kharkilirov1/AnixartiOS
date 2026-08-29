@@ -7,11 +7,13 @@ import '../../core/models.dart';
 import '../../core/theme.dart';
 import '../root.dart';
 import '../widgets.dart';
+import 'friends_screen.dart';
 
-/// Профиль (screenshot 07): avatar, login+level, counters row,
-/// Редактировать, статистика donut, оценки релизов.
+/// Профиль (screenshot 07): свой — статистика/редактирование,
+/// чужой — заявка в друзья, списки этого пользователя, друзья.
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int? viewProfileId;
+  const ProfileScreen({super.key, this.viewProfileId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -28,7 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!Api.I.isAuthorized) return;
     try {
       final prefs = await SharedPreferences.getInstance();
-      final id = prefs.getInt('my_profile_id') ?? 0;
+      int id = widget.viewProfileId ?? 0;
+      if (id <= 0) id = prefs.getInt('my_profile_id') ?? 0;
       if (id <= 0) {
         if (mounted) setState(() => _error = 'Не удалось определить профиль');
         return;
@@ -38,6 +41,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     }
+  }
+
+  bool get _isMe {
+    final me = _me;
+    return me != null && widget.viewProfileId == null;
   }
 
   @override
@@ -123,28 +131,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: SizedBox(
           width: double.infinity,
           child: OutlinedButton(
-            onPressed: () {},
+            onPressed: _isMe ? () {} : () async {
+              try {
+                await Api.I.friendRequestSend(me.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Заявка в друзья отправлена')));
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+                }
+              }
+            },
             style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: AppColors.outline),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                 padding: const EdgeInsets.symmetric(vertical: 13)),
-            child: const Text('Редактировать',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: Text(_isMe ? 'Редактировать' : (me.friendStatus == 2 ? 'Заявка отправлена' : 'Добавить в друзья'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
       ),
+      if (!_isMe)
+        Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: TextButton(
+            onPressed: () async {
+              await Api.I.blocklistAdd(me.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Добавлен в чёрный список')));
+              }
+            },
+            child: const Text('В чёрный список',
+                style: TextStyle(fontSize: 13.5, color: AppColors.textTertiary)),
+          ),
+        ),
       const SizedBox(height: 26),
-      const Divider(color: AppColors.outline, height: 1),
-      Padding(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
-        child: Row(children: [
-          const Text('Статистика', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
-          const SizedBox(width: 8),
-          Icon(Icons.info_outline, size: 18, color: AppColors.textTertiary),
-          const Spacer(),
-          const Text('Показать все', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-        ]),
-      ),
+      if (_isMe) ...[
+        const Divider(color: AppColors.outline, height: 1),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+          child: Row(children: [
+            const Text('Статистика', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 8),
+            Icon(Icons.info_outline, size: 18, color: AppColors.textTertiary),
+            const Spacer(),
+            const Text('Показать все', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+          ]),
+        ),
       SizedBox(
         height: 190,
         child: Row(children: [
@@ -192,7 +228,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: const TextStyle(fontSize: 14.5, color: AppColors.textSecondary)),
         ]),
       ),
+      ],
+      },
       const SizedBox(height: 18),
+      const Divider(color: AppColors.outline, height: 1),
+      // Друзья — у любого профиля.
+      InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => FriendsScreen(profileId: me.id, title: 'Друзья'))),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(children: [
+            const Text('Друзья', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+            const SizedBox(width: 10),
+            Text('${me.friendCount ?? 0}',
+                style: const TextStyle(fontSize: 15, color: AppColors.textSecondary)),
+            const Spacer(),
+            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+          ]),
+        ),
+      ),
       const Divider(color: AppColors.outline, height: 1),
       const Padding(
         padding: EdgeInsets.fromLTRB(16, 18, 16, 0),

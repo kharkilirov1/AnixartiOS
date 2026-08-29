@@ -353,6 +353,47 @@ class Api {
     return _page(j, Profile.fromJson);
   }
 
+  // ---- Video section ----
+
+  Future<List<VideoBlock>> releaseVideos(int releaseId) async {
+    final j = await _call('GET', 'video/release/$releaseId');
+    return ((j['blocks'] as List?) ?? [])
+        .whereType<Map<String, dynamic>>().map(VideoBlock.fromJson).toList();
+  }
+
+  // ---- Comment replies ----
+
+  Future<Pageable<ReleaseComment>> commentReplies(int commentId, int page) async {
+    final j = await _call('POST', 'release/comment/replies/$commentId/$page');
+    return _page(j, ReleaseComment.fromJson);
+  }
+
+  // ---- Friends / social ----
+
+  Future<void> friendRequestSend(int id) async => _call('GET', 'profile/friend/request/send/$id');
+  Future<void> friendRequestRemove(int id) async => _call('GET', 'profile/friend/request/remove/$id');
+  Future<void> blocklistAdd(int id) async => _call('GET', 'profile/blocklist/add/$id');
+
+  // ---- Password restore ----
+
+  Future<String?> restore(String data) async {
+    final j = await _call('POST', 'auth/restore', form: {'data': data});
+    final code = (j['code'] as num?)?.toInt() ?? -1;
+    if (code == 0) return j['hash'] as String?;
+    throw ApiException(code, 'Аккаунт не найден (код $code)');
+  }
+
+  Future<Profile?> restoreVerify(String data, String password, String hash, String code) async {
+    final j = await _call('POST', 'auth/restore/verify',
+        form: {'data': data, 'password': password, 'hash': hash, 'code': code});
+    if ((j['code'] as num?)?.toInt() == 0) {
+      final tokenObj = ProfileToken.fromJson(j['profileToken']);
+      await setToken(tokenObj.token);
+      return j['profile'] == null ? null : Profile.fromJson(j['profile']);
+    }
+    throw ApiException(1, 'Неверный код подтверждения');
+  }
+
   // ---- Notifications ----
 
   Future<int> notificationCount() async {

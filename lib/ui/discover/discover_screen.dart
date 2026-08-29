@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/api.dart';
 import '../../core/models.dart';
 import '../../core/theme.dart';
+import '../filter/filter_screen.dart';
 import '../home/home_screen.dart';
 import '../root.dart';
 import '../widgets.dart';
@@ -108,7 +109,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     onTap: () => Navigator.pushNamed(context, Routes.collections))),
                 const SizedBox(width: 12),
                 Expanded(child: BigPillButton(icon: Icons.tune, label: 'Фильтр',
-                    onTap: () => Navigator.pushNamed(context, Routes.filter))),
+                    onTap: () async {
+                      final f = await Navigator.push<FilterRequest>(context,
+                          MaterialPageRoute(builder: (_) => const FilterScreen()));
+                      if (f != null && context.mounted) {
+                        Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => FilteredResultsScreen(filter: f)));
+                      }
+                    })),
               ]),
               const SizedBox(height: 12),
               Row(children: [
@@ -162,6 +170,27 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     arguments: ReleaseArgs(release: r)),
               ),
         ],
+      ),
+    );
+  }
+}
+
+
+/// Результаты применённого фильтра.
+class FilteredResultsScreen extends StatelessWidget {
+  final FilterRequest filter;
+  const FilteredResultsScreen({super.key, required this.filter});
+
+  @override
+  Widget build(BuildContext context) {
+    return PageScaffold(
+      title: 'Подборка',
+      body: PagedScroll<Release>(
+        loader: (page) => Api.I.filter(page, filter),
+        itemBuilder: (context, r, __) => ReleaseListItem(
+            release: r,
+            onTap: () => Navigator.pushNamed(context, Routes.release,
+                arguments: ReleaseArgs(release: r))),
       ),
     );
   }
