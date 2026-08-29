@@ -300,18 +300,19 @@ class _PagedScrollState<T> extends State<PagedScroll<T>> {
     if (_loading) return;
     if (reset) { _page = 0; _canMore = true; _items.clear(); _error = null; }
     if (!_canMore) return;
-    setState(() { _loading = true; });
+    if (mounted) setState(() { _loading = true; });
     try {
       final resp = await widget.loader(_page);
+      if (!mounted) return;
       setState(() {
         _items.addAll(resp.content);
         _canMore = resp.content.length >= 20;
         _page += 1;
       });
     } catch (e) {
-      if (_items.isEmpty) setState(() { _error = e.toString(); });
+      if (_items.isEmpty && mounted) setState(() { _error = e.toString(); });
     } finally {
-      setState(() { _loading = false; });
+      if (mounted) setState(() { _loading = false; });
     }
   }
 

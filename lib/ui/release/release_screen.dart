@@ -56,8 +56,14 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                     opacity: 0.18),
               ),
               child: SafeArea(
-                child: ListView(
+                // SingleChildScrollView+Column вместо ленивого ListView:
+                // на некоторых устройствах lazy-list терял drag-жесты
+                // после первой прокрутки на этой странице.
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Top buttons
                     Padding(
@@ -380,6 +386,7 @@ class _ReleaseScreenState extends State<ReleaseScreen> {
                     const SizedBox(height: 16),
                     CommentsPreview(releaseId: r.id, commentCount: r.commentCount),
                   ],
+                  ),
                 ),
               ),
             ),

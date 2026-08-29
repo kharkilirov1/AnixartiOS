@@ -16,3 +16,6 @@ build/
 
 # Tooling
 tools/__pycache__/
+
+# Скачанные артефакты
+dist/
