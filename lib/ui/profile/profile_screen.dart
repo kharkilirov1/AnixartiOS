@@ -181,7 +181,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Text('Показать все', style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
           ]),
         ),
-      SizedBox(
+        SizedBox(
         height: 190,
         child: Row(children: [
           Expanded(
@@ -229,7 +229,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ]),
       ),
       ],
-      },
       const SizedBox(height: 18),
       const Divider(color: AppColors.outline, height: 1),
       // Друзья — у любого профиля.
