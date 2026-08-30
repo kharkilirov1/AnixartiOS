@@ -312,22 +312,6 @@ class _CommentsScreenState extends State<CommentsScreen> {
     }
   }
 
-  Future<void> _toggleReplies(ReleaseComment c) async {
-    if (_showReplies.contains(c.id)) {
-      setState(() => _showReplies.remove(c.id));
-      return;
-    }
-    setState(() { _showReplies.add(c.id); _repliesLoading.add(c.id); });
-    try {
-      final resp = await Api.I.commentReplies(c.id, 0);
-      _replies[c.id] = resp.content;
-    } catch (_) {
-      _replies[c.id] = const [];
-    } finally {
-      if (mounted) setState(() => _repliesLoading.remove(c.id));
-    }
-  }
-
   String _relative(int? ts) {
     if (ts == null) return '';
     final date = DateTime.fromMillisecondsSinceEpoch(ts * 1000);
