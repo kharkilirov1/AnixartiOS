@@ -84,22 +84,6 @@ class _CommentsPreviewState extends State<CommentsPreview> {
     );
   }
 
-  Future<void> _toggleReplies(ReleaseComment c) async {
-    if (_showReplies.contains(c.id)) {
-      setState(() => _showReplies.remove(c.id));
-      return;
-    }
-    setState(() { _showReplies.add(c.id); _repliesLoading.add(c.id); });
-    try {
-      final resp = await Api.I.commentReplies(c.id, 0);
-      _replies[c.id] = resp.content;
-    } catch (_) {
-      _replies[c.id] = const [];
-    } finally {
-      if (mounted) setState(() => _repliesLoading.remove(c.id));
-    }
-  }
-
   String _relative(int? ts) {
     if (ts == null) return '';
     final d = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(ts * 1000));
@@ -295,7 +279,7 @@ class _CommentsScreenState extends State<CommentsScreen> {
               InkWell(
                 onTap: () => _toggleReplies(c),
                 child: Text(_showReplies.contains(c.id) ? 'Скрыть ответы' : 'Показать ${c.replyCount} отв.',
-                    style: const TextStyle(fontSize: 12.5, color: AppColors.carmine)),
+                    style: const TextStyle(fontSize: 12.5, color: AppColors.badgeNew)),
               ),
             ],
           ]),
@@ -310,6 +294,22 @@ class _CommentsScreenState extends State<CommentsScreen> {
               _commentCell(r, isReply: true),
       ]),
     );
+  }
+
+  Future<void> _toggleReplies(ReleaseComment c) async {
+    if (_showReplies.contains(c.id)) {
+      setState(() => _showReplies.remove(c.id));
+      return;
+    }
+    setState(() { _showReplies.add(c.id); _repliesLoading.add(c.id); });
+    try {
+      final resp = await Api.I.commentReplies(c.id, 0);
+      _replies[c.id] = resp.content;
+    } catch (_) {
+      _replies[c.id] = const [];
+    } finally {
+      if (mounted) setState(() => _repliesLoading.remove(c.id));
+    }
   }
 
   Future<void> _toggleReplies(ReleaseComment c) async {
