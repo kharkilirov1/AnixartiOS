@@ -40,6 +40,8 @@ jobs:
           s = open(path).read()
           s = s.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.release')
           s = s.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release')
+          # Kotlin DSL template
+          s = s.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("release")')
           open(path, 'w').write(s)
           print('patched', path)
           for line in s.splitlines():
