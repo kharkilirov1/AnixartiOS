@@ -40,12 +40,24 @@ jobs:
           s = open(path).read()
           s = s.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.release')
           s = s.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release')
-          # Kotlin DSL template
           s = s.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("release")')
+          # Kotlin DSL: fresh templates have no release signingConfig - create it
+          if 'signingConfigs {' not in s and 'signingConfigs.create' not in s:
+              block = '''signingConfigs {
+                create("release") {
+                    keyAlias = keystoreProperties["keyAlias"] as String?
+                    keyPassword = keystoreProperties["keyPassword"] as String?
+                    storeFile = keystoreProperties["storeFile"]?.let { file(it) }
+                    storePassword = keystoreProperties["storePassword"] as String?
+                }
+            }
+
+            '''
+              s = s.replace('buildTypes {', block + 'buildTypes {', 1)
           open(path, 'w').write(s)
           print('patched', path)
           for line in s.splitlines():
-              if 'signingConfig' in line:
+              if 'signingConfig' in line or 'signingConfigs' in line:
                   print(line.strip())
           EOF
 
