@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,12 @@ class ApiException implements Exception {
   ApiException(this.code, this.message);
   @override
   String toString() => message;
+}
+
+/// Уведомляет UI об изменении сессии (вход/выход) — экраны перезагружаются.
+class SessionEvents {
+  static final ValueNotifier<int> version = ValueNotifier<int>(0);
+  static void ping() => version.value++;
 }
 
 class Api {
@@ -42,9 +49,11 @@ class Api {
     final p = await SharedPreferences.getInstance();
     if (token == null || token.isEmpty) {
       await p.remove(_tokenKey);
+      await p.remove('my_profile_id');
     } else {
       await p.setString(_tokenKey, token);
     }
+    SessionEvents.ping();
   }
 
   Future<void> _switchBase(String url) async {

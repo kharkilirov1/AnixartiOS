@@ -19,8 +19,9 @@ class PlayerScreen extends StatefulWidget {
   final EpisodeType type;
   final EpisodeSource source;
   final List<Episode> episodes;
+  final int initialIndex;
   const PlayerScreen({super.key, required this.release, required this.type,
-      required this.source, required this.episodes});
+      required this.source, required this.episodes, this.initialIndex = 0});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -73,7 +74,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _openEpisode(0);
+    _openEpisode(widget.initialIndex);
   }
 
   @override

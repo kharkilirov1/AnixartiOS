@@ -112,7 +112,7 @@ class _VoiceoverScreenState extends State<VoiceoverScreen> {
   }
 }
 
-/// Loads episodes for the selected voiceover and navigates to the player.
+/// Loads sources for the selected voiceover and opens the episode picker.
 class PlayerLoaderScreen extends StatefulWidget {
   final Release release;
   final EpisodeType type;
@@ -133,18 +133,10 @@ class _PlayerLoaderScreenState extends State<PlayerLoaderScreen> {
     try {
       final sources = await Api.I.episodeSources(widget.release.id, widget.type.id);
       if (sources.isEmpty) throw Exception('Нет источников');
-      final source = sources.first;
-      final episodes = await Api.I.episodes(widget.release.id, widget.type.id, source.id);
       if (!mounted) return;
-      if (episodes.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Нет эпизодов у этого источника')));
-        Navigator.pop(context);
-        return;
-      }
       Navigator.pushReplacement(context, MaterialPageRoute(
-          builder: (_) => PlayerScreen(
-              release: widget.release, type: widget.type, source: source, episodes: episodes)));
+          builder: (_) => EpisodesScreen(
+              release: widget.release, type: widget.type, sources: sources)));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
@@ -157,4 +149,169 @@ class _PlayerLoaderScreenState extends State<PlayerLoaderScreen> {
   Widget build(BuildContext context) =>
       const Scaffold(backgroundColor: AppColors.bg,
           body: Center(child: CircularProgressIndicator(color: AppColors.textSecondary)));
+}
+
+/// «Выберите серию» (эталон voice_b): вертикальный список серий,
+/// подзаголовок с источником, чипы источников если их несколько.
+class EpisodesScreen extends StatefulWidget {
+  final Release release;
+  final EpisodeType type;
+  final List<EpisodeSource> sources;
+  const EpisodesScreen({super.key, required this.release, required this.type, required this.sources});
+
+  @override
+  State<EpisodesScreen> createState() => _EpisodesScreenState();
+}
+
+class _EpisodesScreenState extends State<EpisodesScreen> {
+  late EpisodeSource _source;
+  List<Episode> _episodes = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _source = widget.sources.first;
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final eps = await Api.I.episodes(widget.release.id, widget.type.id, _source.id);
+      if (mounted) setState(() { _episodes = eps; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = '$e'; _loading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        bottom: false,
+        child: Column(children: [
+          // App bar: back, «Выберите серию / Источник …», actions
+          SizedBox(
+            height: 64,
+            child: Row(children: [
+              IconButton(icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary, size: 26),
+                  onPressed: () => Navigator.maybePop(context)),
+              const SizedBox(width: 8),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center, children: [
+                const Text('Выберите серию',
+                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                Text('Источник ${_source.name ?? ''}',
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              ])),
+              IconButton(icon: const Icon(Icons.swap_vert_rounded, size: 24, color: AppColors.textSecondary),
+                  onPressed: () => setState(() => _episodes = _episodes.reversed.toList())),
+              IconButton(icon: const Icon(Icons.history_rounded, size: 24, color: AppColors.textSecondary),
+                  onPressed: () {}),
+              IconButton(icon: const Icon(Icons.more_vert, size: 24, color: AppColors.textSecondary),
+                  onPressed: () {}),
+            ]),
+          ),
+          const Divider(height: 1, color: AppColors.outline),
+
+          // Source chips (if several)
+          if (widget.sources.length > 1)
+            SizedBox(
+              height: 52,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: widget.sources.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, i) {
+                  final src = widget.sources[i];
+                  final active = src.id == _source.id;
+                  return GestureDetector(
+                    onTap: () { if (!active) { _source = src; _load(); } },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                          color: active ? AppColors.accent : AppColors.surface,
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Center(child: Text('${src.name} · ${src.episodesCount ?? 0} эп.',
+                          style: TextStyle(fontSize: 13.5,
+                              color: active ? Colors.white : AppColors.textSecondary))),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator(color: AppColors.textSecondary))
+                : _error != null
+                    ? ErrorCentered(message: _error!, onRetry: _load)
+                    : _episodes.isEmpty
+                        ? const Center(child: Text('Нет эпизодов',
+                            style: TextStyle(color: AppColors.textTertiary)))
+                        : ListView.separated(
+                            itemCount: _episodes.length + 2,
+                            separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.outline),
+                            itemBuilder: (context, i) {
+                              // Section header: voiceover name
+                              if (i == 0) {
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+                                  child: Align(alignment: Alignment.centerLeft,
+                                      child: Text(widget.type.name ?? '',
+                                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800))),
+                                );
+                              }
+                              // Hint card
+                              if (i == 1) {
+                                return Container(
+                                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                      border: Border.all(color: AppColors.outline),
+                                      borderRadius: BorderRadius.circular(14)),
+                                  child: Text(
+                                      'Если серия не запускается ни через какой видеоплеер, попробуйте сменить источник, если это доступно. Любая реклама в видео к приложению отношения не имеет.',
+                                      style: TextStyle(fontSize: 13.5,
+                                          color: AppColors.textTertiary.withOpacity(0.9), height: 1.45)),
+                                );
+                              }
+                              final ep = _episodes[i - 2];
+                              final watched = ep.isWatched == true;
+                              return InkWell(
+                                onTap: () => Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => PlayerScreen(
+                                        release: widget.release, type: widget.type,
+                                        source: _source, episodes: _episodes,
+                                        initialIndex: i - 2))),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                                  child: Row(children: [
+                                    Expanded(child: Text(
+                                        ep.name ?? 'Серия ${ep.position ?? i - 1}',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            color: watched ? AppColors.badgeNew : AppColors.textPrimary))),
+                                    IconButton(
+                                        icon: const Icon(Icons.download_outlined,
+                                            size: 22, color: AppColors.textTertiary),
+                                        onPressed: () {}),
+                                    IconButton(
+                                        icon: const Icon(Icons.more_vert,
+                                            size: 22, color: AppColors.textTertiary),
+                                        onPressed: () {}),
+                                  ]),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ]),
+      ),
+    );
+  }
 }

@@ -58,10 +58,13 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
           ),
         ),
         Expanded(
-          child: Column(children: [
-            _bookmarksHeader(),
-            Expanded(child: _body()),
-          ]),
+          child: KeyedSubtree(
+            key: ValueKey(_tab),
+            child: Column(children: [
+              _bookmarksHeader(),
+              Expanded(child: _body()),
+            ]),
+          ),
         ),
       ]),
     );

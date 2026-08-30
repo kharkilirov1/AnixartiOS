@@ -18,12 +18,32 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> {
   int _tab = 0;
+  int _session = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    SessionEvents.version.addListener(_onSession);
+  }
+
+  @override
+  void dispose() {
+    SessionEvents.version.removeListener(_onSession);
+    super.dispose();
+  }
+
+  void _onSession() {
+    setState(() => _session = SessionEvents.version.value);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
+      // Key по версии сессии: после входа/выхода экраны пересоздаются
+      // с актуальным состоянием авторизации.
       body: IndexedStack(
+        key: ValueKey(_session),
         index: _tab,
         children: const [
           HomeScreen(),
@@ -33,6 +53,7 @@ class _RootShellState extends State<RootShell> {
         ],
       ),
       bottomNavigationBar: _BottomNav(
+        key: ValueKey('nav$_session'),
         selected: _tab,
         onChanged: (i) => setState(() => _tab = i),
       ),
